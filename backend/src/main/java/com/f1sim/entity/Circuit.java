@@ -17,6 +17,16 @@ import lombok.*;
 @Builder
 public class Circuit {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false)
+    private String country;
+
     @Column(name = "total_laps")
     private Integer totalLaps;
 
