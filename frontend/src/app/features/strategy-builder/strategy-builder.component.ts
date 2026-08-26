@@ -3,33 +3,32 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { StrategyApiService } from '../../core/services/strategy-api.service';
 import { Stint, StrategySimulationResponse, TyreCompound } from '../../core/models/strategy.model';
+import { StrategyRingComponent } from '../../shared/components/strategy-ring/strategy-ring.component';
+
+// Same compound -> color mapping the ring already uses, so a SOFT
+// chip in the editor and a SOFT arc in the ring always mean the same red.
+const COMPOUND_COLOR_VAR: Record<TyreCompound, string> = {
+  SOFT: 'var(--tyre-soft)',
+  MEDIUM: 'var(--tyre-medium)',
+  HARD: 'var(--tyre-hard)',
+  INTERMEDIATE: 'var(--tyre-intermediate)',
+  WET: 'var(--tyre-wet)'
+};
 
 @Component({
-  // `standalone: true` means this component declares its own dependencies
-  // (via `imports`) instead of belonging to an NgModule. Modern Angular
-  // (17+) defaults to this — no more app.module.ts bloat.
   selector: 'app-strategy-builder',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, StrategyRingComponent],
   templateUrl: './strategy-builder.component.html',
   styleUrl: './strategy-builder.component.scss'
 })
 export class StrategyBuilderComponent {
-
-  // `input()` is the new signal-based input API (Angular 17.1+),
-  // replacing @Input(). raceId/driverId/totalLaps are passed in
-  // from the parent route (e.g. the race detail page).
   raceId = input.required<number>();
   driverId = input.required<number>();
   totalLaps = input.required<number>();
 
   private readonly api = inject(StrategyApiService);
 
-  // A `signal` is a reactive, mutable value container — reading it
-  // (via `stints()`) inside a template or computed() automatically
-  // subscribes to future changes. Unlike RxJS, no manual subscribe/
-  // unsubscribe is needed and Angular's change detection uses it
-  // directly for fine-grained updates (zoneless-ready).
   readonly stints = signal<Stint[]>([
     { compound: 'MEDIUM', startLap: 1, endLap: 20 }
   ]);
@@ -40,9 +39,6 @@ export class StrategyBuilderComponent {
   readonly isSimulating = signal(false);
   readonly errorMessage = signal<string | null>(null);
 
-  // `computed()` derives a value from other signals and re-evaluates
-  // lazily, only when one of its dependencies (here, `stints`) changes.
-  // This replaces manually recalculating "covered laps" on every edit.
   readonly lapsCovered = computed(() => {
     const list = this.stints();
     return list.length === 0 ? 0 : list[list.length - 1].endLap;
@@ -50,13 +46,17 @@ export class StrategyBuilderComponent {
 
   readonly isStrategyValid = computed(() => this.lapsCovered() === this.totalLaps());
 
+  // Drives the width (and color) of the coverage bar in the editor —
+  // same underlying check as isStrategyValid, expressed as a percentage.
+  readonly coveragePercent = computed(() => {
+    const total = this.totalLaps();
+    return total > 0 ? Math.min(100, (this.lapsCovered() / total) * 100) : 0;
+  });
+
   addStint(): void {
     const current = this.stints();
     const lastEndLap = current.length > 0 ? current[current.length - 1].endLap : 0;
 
-    // `.update()` takes the previous value and returns the new one —
-    // the recommended way to derive a new array/object immutably,
-    // instead of mutating the existing array in place.
     this.stints.update(list => [
       ...list,
       { compound: 'HARD', startLap: lastEndLap + 1, endLap: Math.min(lastEndLap + 15, this.totalLaps()) }
@@ -69,7 +69,7 @@ export class StrategyBuilderComponent {
 
   updateStint(index: number, patch: Partial<Stint>): void {
     this.stints.update(list =>
-      list.map((stint, i) => (i === index ? { ...stint, ...patch } : stint))
+        list.map((stint, i) => (i === index ? { ...stint, ...patch } : stint))
     );
   }
 
@@ -96,5 +96,13 @@ export class StrategyBuilderComponent {
         this.isSimulating.set(false);
       }
     });
+  }
+
+  colorFor(compound: TyreCompound): string {
+    return COMPOUND_COLOR_VAR[compound];
+  }
+
+  stintLabel(index: number): string {
+    return String(index + 1).padStart(2, '0');
   }
 }

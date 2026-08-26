@@ -1,76 +1,113 @@
-<div class="strategy-builder">
-  <h2>Strategy Builder</h2>
+<section class="builder">
+  <div class="builder-editor">
+    <header class="builder-header">
+      <span class="builder-eyebrow">PIT WALL // STRATEGY BUILDER</span>
+      <h2 class="builder-title">Plan the <span class="accent">stops</span>.</h2>
+    </header>
 
-  <!-- @for is the new Angular 17 control-flow syntax, replacing *ngFor.
-       It requires a `track` expression (here, the stint's index) so
-       Angular can efficiently diff the list instead of re-rendering
-       everything on every change. -->
-  <div class="stint-list">
-    @for (stint of stints(); track $index) {
-      <div class="stint-row">
-        <select
-          [ngModel]="stint.compound"
-          (ngModelChange)="updateStint($index, { compound: $event })">
+    <div class="stint-list">
+      @for (stint of stints(); track $index) {
+      <div class="stint-card" [style.--stint-color]="colorFor(stint.compound)">
+        <div class="stint-card-head">
+          <span class="stint-index">STINT {{ stintLabel($index) }}</span>
+          <button
+                  type="button"
+                  class="remove-btn"
+                  (click)="removeStint($index)"
+                  [disabled]="stints().length === 1"
+                  aria-label="Remove stint">
+            ✕
+          </button>
+        </div>
+
+        <div class="compound-picker">
           @for (compound of compounds; track compound) {
-            <option [value]="compound">{{ compound }}</option>
+          <button
+                  type="button"
+                  class="compound-chip"
+                  [class.active]="stint.compound === compound"
+                  [style.--chip-color]="colorFor(compound)"
+                  (click)="updateStint($index, { compound })">
+            {{ compound }}
+          </button>
           }
-        </select>
+        </div>
 
-        <label>
-          Lap
-          <input
-            type="number"
-            [ngModel]="stint.startLap"
-            (ngModelChange)="updateStint($index, { startLap: +$event })" />
-        </label>
+        <div class="lap-range">
+          <label class="lap-field">
+            <span class="lap-label">FROM</span>
+            <input
+                    type="number"
+                    min="1"
+                    [ngModel]="stint.startLap"
+                    (ngModelChange)="updateStint($index, { startLap: +$event })" />
+          </label>
 
-        <span>→</span>
+          <span class="lap-arrow">→</span>
 
-        <label>
-          Lap
-          <input
-            type="number"
-            [ngModel]="stint.endLap"
-            (ngModelChange)="updateStint($index, { endLap: +$event })" />
-        </label>
-
-        <button type="button" (click)="removeStint($index)" [disabled]="stints().length === 1">
-          Remove
-        </button>
+          <label class="lap-field">
+            <span class="lap-label">TO</span>
+            <input
+                    type="number"
+                    min="1"
+                    [ngModel]="stint.endLap"
+                    (ngModelChange)="updateStint($index, { endLap: +$event })" />
+          </label>
+        </div>
       </div>
-    }
-  </div>
-
-  <button type="button" (click)="addStint()">+ Add stint</button>
-
-  <p class="coverage" [class.invalid]="!isStrategyValid()">
-    Laps covered: {{ lapsCovered() }} / {{ totalLaps() }}
-  </p>
-
-  <!-- @if is the new control-flow replacement for *ngIf -->
-  @if (errorMessage()) {
-    <p class="error">{{ errorMessage() }}</p>
-  }
-
-  <button
-    type="button"
-    class="simulate-btn"
-    [disabled]="isSimulating() || !isStrategyValid()"
-    (click)="runSimulation()">
-    @if (isSimulating()) {
-      Simulating...
-    } @else {
-      Run Simulation
-    }
-  </button>
-
-  @if (result(); as sim) {
-    <div class="result-card">
-      <h3>Predicted race time</h3>
-      <p class="total-time">{{ sim.formattedTotalTime }}</p>
-      @if (sim.deltaVsActualSeconds !== null) {
-        <p>Delta vs actual result: {{ sim.deltaVsActualSeconds }}s</p>
       }
     </div>
-  }
-</div>
+
+    <button type="button" class="add-stint-btn" (click)="addStint()">
+      + Add stint
+    </button>
+
+    <div class="coverage" [class.invalid]="!isStrategyValid()">
+      <div class="coverage-track">
+        <div class="coverage-fill" [style.width.%]="coveragePercent()"></div>
+      </div>
+      <span class="coverage-label">
+        {{ lapsCovered() }} / {{ totalLaps() }} LAPS COVERED
+      </span>
+    </div>
+
+    @if (errorMessage()) {
+    <p class="error-msg">{{ errorMessage() }}</p>
+    }
+
+    <button
+            type="button"
+            class="simulate-btn"
+            [disabled]="isSimulating() || !isStrategyValid()"
+            (click)="runSimulation()">
+      @if (isSimulating()) {
+      Simulating…
+      } @else {
+      Run Simulation
+      }
+    </button>
+  </div>
+
+  <aside class="builder-readout">
+    <app-strategy-ring
+            [stints]="stints()"
+            [totalLaps]="totalLaps()"
+            [formattedTotalTime]="result()?.formattedTotalTime ?? null" />
+
+    @if (result(); as sim) {
+    <div class="result-card">
+      @if (sim.deltaVsActualSeconds !== null) {
+      <span class="result-label">DELTA VS ACTUAL</span>
+      <span
+              class="result-delta"
+              [class.faster]="sim.deltaVsActualSeconds < 0"
+              [class.slower]="sim.deltaVsActualSeconds > 0">
+            {{ sim.deltaVsActualSeconds > 0 ? '+' : '' }}{{ sim.deltaVsActualSeconds }}s
+          </span>
+      } @else {
+      <span class="result-label">NO ACTUAL RESULT TO COMPARE</span>
+      }
+    </div>
+    }
+  </aside>
+</section>
