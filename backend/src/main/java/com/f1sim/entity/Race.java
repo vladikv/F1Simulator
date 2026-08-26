@@ -30,6 +30,9 @@ public class Race {
     @Column(name = "race_datetime", nullable = false)
     private LocalDateTime raceDateTime;
 
+    @Column(name = "total_laps")
+    private Integer totalLaps;
+
     /** External id used to correlate with the OpenF1 API session. */
     @Column(name = "external_session_key")
     private String externalSessionKey;

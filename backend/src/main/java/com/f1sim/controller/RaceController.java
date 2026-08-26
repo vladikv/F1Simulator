@@ -41,7 +41,8 @@ public class RaceController {
                 race.getCircuit().getName(),
                 race.getCircuit().getCountry(),
                 race.getRaceDateTime(),
-                race.getStatus().name()
+                race.getStatus().name(),
+                race.getTotalLaps()
         );
     }
 }

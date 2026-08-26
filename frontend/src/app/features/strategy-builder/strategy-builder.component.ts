@@ -1,12 +1,12 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { StrategyApiService } from '../../core/services/strategy-api.service';
+import { RaceApiService } from '../../core/services/race-api.service';
+import { RaceSummary } from '../../core/models/race.model';
 import { Stint, StrategySimulationResponse, TyreCompound } from '../../core/models/strategy.model';
 import { StrategyRingComponent } from '../../shared/components/strategy-ring/strategy-ring.component';
 
-// Same compound -> color mapping the ring already uses, so a SOFT
-// chip in the editor and a SOFT arc in the ring always mean the same red.
 const COMPOUND_COLOR_VAR: Record<TyreCompound, string> = {
   SOFT: 'var(--tyre-soft)',
   MEDIUM: 'var(--tyre-medium)',
@@ -23,11 +23,25 @@ const COMPOUND_COLOR_VAR: Record<TyreCompound, string> = {
   styleUrl: './strategy-builder.component.scss'
 })
 export class StrategyBuilderComponent {
+  // Bound automatically from the URL by withComponentInputBinding().
   raceId = input.required<number>();
   driverId = input.required<number>();
-  totalLaps = input.required<number>();
 
   private readonly api = inject(StrategyApiService);
+  private readonly raceApi = inject(RaceApiService);
+
+  readonly race = signal<RaceSummary | null>(null);
+  readonly totalLaps = computed(() => this.race()?.totalLaps ?? 0);
+
+  constructor() {
+    // effect() re-runs whenever raceId() changes — covers navigating
+    // directly between two /strategy/:raceId/:driverId URLs without a
+    // full page reload, not just the first load.
+    effect(() => {
+      const id = this.raceId();
+      this.raceApi.getRace(id).subscribe(race => this.race.set(race));
+    });
+  }
 
   readonly stints = signal<Stint[]>([
     { compound: 'MEDIUM', startLap: 1, endLap: 20 }
@@ -46,8 +60,6 @@ export class StrategyBuilderComponent {
 
   readonly isStrategyValid = computed(() => this.lapsCovered() === this.totalLaps());
 
-  // Drives the width (and color) of the coverage bar in the editor —
-  // same underlying check as isStrategyValid, expressed as a percentage.
   readonly coveragePercent = computed(() => {
     const total = this.totalLaps();
     return total > 0 ? Math.min(100, (this.lapsCovered() / total) * 100) : 0;
