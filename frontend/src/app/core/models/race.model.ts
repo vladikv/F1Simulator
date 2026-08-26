@@ -9,3 +9,11 @@ export interface RaceSummary {
     status: string;
     totalLaps: number | null;
 }
+
+export interface RaceDriver {
+    id: number;
+    fullName: string;
+    driverCode: string;
+    teamName: string;
+    permanentNumber: number | null;
+}

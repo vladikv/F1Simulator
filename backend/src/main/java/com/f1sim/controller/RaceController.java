@@ -1,8 +1,10 @@
 package com.f1sim.controller;
 
+import com.f1sim.dto.RaceDriverDto;
 import com.f1sim.dto.RaceSummaryDto;
 import com.f1sim.entity.Race;
 import com.f1sim.repository.RaceRepository;
+import com.f1sim.service.RaceDriverService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ import java.util.List;
 public class RaceController {
 
     private final RaceRepository raceRepository;
+    private final RaceDriverService raceDriverService;
 
     @GetMapping
     public List<RaceSummaryDto> listRaces() {
@@ -31,6 +34,11 @@ public class RaceController {
         Race race = raceRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Race not found: " + id));
         return toSummary(race);
+    }
+
+    @GetMapping("/{id}/drivers")
+    public List<RaceDriverDto> getDriversForRace(@PathVariable Long id) {
+        return raceDriverService.getDriversForRace(id);
     }
 
     private RaceSummaryDto toSummary(Race race) {

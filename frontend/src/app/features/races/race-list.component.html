@@ -10,10 +10,23 @@
             tyre model, and see how close you get to the real race result.
         </p>
 
-        <!-- driverId is hardcoded to 1 for now — no driver picker yet,
-             tracked as a follow-up once the races list itself is real. -->
         @if (matchedRace(); as race) {
-        <a [routerLink]="['/strategy', race.id, 1]" class="hero-cta">Build a strategy →</a>
+        @if (drivers().length) {
+        <select
+                class="driver-select"
+                [ngModel]="selectedDriverId()"
+                (ngModelChange)="selectedDriverId.set(+$event)">
+            @for (d of drivers(); track d.id) {
+            <option [value]="d.id">{{ d.fullName }} ({{ d.teamName }})</option>
+            }
+        </select>
+        }
+
+        @if (selectedDriverId(); as driverId) {
+        <a [routerLink]="['/strategy', race.id, driverId]" class="hero-cta">Build a strategy →</a>
+        } @else {
+        <span class="hero-cta hero-cta--disabled">Loading drivers…</span>
+        }
         } @else {
         <span class="hero-cta hero-cta--disabled">No synced race for this circuit yet</span>
         }

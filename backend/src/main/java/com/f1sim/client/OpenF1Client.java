@@ -12,11 +12,6 @@ import org.springframework.web.client.RestClient;
 
 import java.util.List;
 
-/**
- * Thin wrapper around OpenF1's public REST API (api.openf1.org).
- * Historical data (2023 onward) is free and needs no authentication,
- * which is all this app uses — no API key handling here.
- */
 @Component
 @RequiredArgsConstructor
 @Slf4j

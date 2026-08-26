@@ -1,11 +1,11 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import {Component, computed, effect, inject, signal} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CircuitTrackComponent } from '../../shared/components/circuit-track/circuit-track.component';
 import { CIRCUIT_TRACKS } from '../../core/data/circuit-tracks.data';
 import { RaceApiService } from '../../core/services/race-api.service';
-import { RaceSummary } from '../../core/models/race.model';
+import {RaceDriver, RaceSummary} from '../../core/models/race.model';
 
 const STANDARD_RACE_DISTANCE_M = 305_000;
 const MONACO_RACE_DISTANCE_M = 260_000;
@@ -27,13 +27,30 @@ export class RaceListComponent {
       CIRCUIT_TRACKS.find(t => t.id === 'mc-1929')?.id ?? CIRCUIT_TRACKS[0].id
   );
 
-  // Real races synced from OpenF1 via RaceSyncService — separate from
-  // the local GeoJSON track outlines, which exist purely for the visual.
-  readonly races = signal<RaceSummary[]>([]);
+  readonly drivers = signal<RaceDriver[]>([]);
+  readonly selectedDriverId = signal<number | null>(null);
 
   constructor() {
     this.raceApi.getRaces().subscribe(list => this.races.set(list));
+
+    // Re-fetches the entry list whenever the matched race changes —
+    // e.g. user picks a different circuit in the dropdown.
+    effect(() => {
+      const race = this.matchedRace();
+      this.drivers.set([]);
+      this.selectedDriverId.set(null);
+      if (!race) return;
+
+      this.raceApi.getDrivers(race.id).subscribe(list => {
+        this.drivers.set(list);
+        this.selectedDriverId.set(list[0]?.id ?? null);
+      });
+    });
   }
+
+  // Real races synced from OpenF1 via RaceSyncService — separate from
+  // the local GeoJSON track outlines, which exist purely for the visual.
+  readonly races = signal<RaceSummary[]>([]);
 
   readonly selectedTrack = computed(() =>
       this.availableTracks.find(t => t.id === this.selectedTrackId())!
