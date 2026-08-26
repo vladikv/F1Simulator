@@ -10,5 +10,6 @@ public record RaceSummaryDto(
         String circuitName,
         String country,
         LocalDateTime raceDateTime,
-        String status
+        String status,
+        Integer totalLaps
 ) {}
