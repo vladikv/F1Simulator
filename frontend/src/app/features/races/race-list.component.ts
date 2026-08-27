@@ -6,6 +6,7 @@ import { CircuitTrackComponent } from '../../shared/components/circuit-track/cir
 import { CIRCUIT_TRACKS } from '../../core/data/circuit-tracks.data';
 import { RaceApiService } from '../../core/services/race-api.service';
 import {RaceDriver, RaceSummary} from '../../core/models/race.model';
+import {CIRCUIT_TO_OPENF1_NAME} from "../../core/data/circuit-race-map";
 
 const STANDARD_RACE_DISTANCE_M = 305_000;
 const MONACO_RACE_DISTANCE_M = 260_000;
@@ -33,8 +34,6 @@ export class RaceListComponent {
   constructor() {
     this.raceApi.getRaces().subscribe(list => this.races.set(list));
 
-    // Re-fetches the entry list whenever the matched race changes —
-    // e.g. user picks a different circuit in the dropdown.
     effect(() => {
       const race = this.matchedRace();
       this.drivers.set([]);
@@ -45,7 +44,7 @@ export class RaceListComponent {
         this.drivers.set(list);
         this.selectedDriverId.set(list[0]?.id ?? null);
       });
-    });
+    }, { allowSignalWrites: true });
   }
 
   // Real races synced from OpenF1 via RaceSyncService — separate from
@@ -56,15 +55,16 @@ export class RaceListComponent {
       this.availableTracks.find(t => t.id === this.selectedTrackId())!
   );
 
-  // Best-effort match between the visually selected circuit and a real,
-  // synced race — matched by name since the two datasets don't share an
-  // id. Not every one of the 40 local tracks will have a synced race yet.
+  // Matched by country, not circuit name — OpenF1's circuit_short_name
+  // ("Monte Carlo") and the local GeoJSON dataset's displayName ("Circuit
+  // de Monaco") diverge in wording across most of the 40 tracks. Country
+  // is a single clean field on both sides and almost always unambiguous
+  // (one Grand Prix per country per season, with the exception of a
+  // handful of double-header seasons like Emilia Romagna/Italy).
   readonly matchedRace = computed<RaceSummary | null>(() => {
-    const target = this.normalize(this.selectedTrack().displayName);
-    return this.races().find(race => {
-      const candidate = this.normalize(race.circuitName);
-      return target.includes(candidate) || candidate.includes(target);
-    }) ?? null;
+    const openF1Name = CIRCUIT_TO_OPENF1_NAME[this.selectedTrackId()];
+    if (!openF1Name) return null;
+    return this.races().find(race => race.circuitName === openF1Name) ?? null;
   });
 
   readonly estimatedLaps = computed(() => {
@@ -91,14 +91,9 @@ export class RaceListComponent {
     return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   }
 
-  // Strips punctuation/common words so "Circuit de Monaco" and "Monaco"
-  // can match each other. Deliberately loose — a heuristic, not a join key.
-  private normalize(name: string): string {
-    return name
-        .toLowerCase()
-        .replace(/grand prix/g, '')
-        .replace(/circuit/g, '')
-        .replace(/[^a-z0-9]/g, '')
-        .trim();
-  }
+  // // Strips punctuation/common words so "Circuit de Monaco" and "Monaco"
+  // // can match each other. Deliberately loose — a heuristic, not a join key.
+  // private normalize(name: string): string {
+  //   return name.toLowerCase().trim();
+  // }
 }

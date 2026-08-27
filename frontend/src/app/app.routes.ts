@@ -18,5 +18,9 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () =>
       import('./features/strategy-builder/strategy-builder.component').then(m => m.StrategyBuilderComponent)
+  },
+  {
+    path: 'leaderboard',
+    loadComponent: () => import('./features/leaderboard/leaderboard.component').then(m => m.LeaderboardComponent)
   }
 ];

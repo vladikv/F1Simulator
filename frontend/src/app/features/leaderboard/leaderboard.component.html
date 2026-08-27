@@ -1,0 +1,22 @@
+<section class="leaderboard">
+    <header class="leaderboard-header">
+        <span class="leaderboard-eyebrow">PIT WALL // STANDINGS</span>
+        <h2 class="leaderboard-title">Strategist <span class="accent">rankings</span>.</h2>
+    </header>
+
+    @if (isLoading()) {
+    <p class="leaderboard-loading">Loading standings…</p>
+    } @else if (entries().length === 0) {
+    <p class="leaderboard-empty">No scored predictions yet.</p>
+    } @else {
+    <div class="leaderboard-list">
+        @for (entry of entries(); track entry.userId; let i = $index) {
+        <div class="leaderboard-row">
+            <span class="rank">{{ i + 1 }}</span>
+            <span class="username">{{ entry.username }}</span>
+            <span class="score">{{ entry.ratingScore | number:'1.0-1' }}</span>
+        </div>
+        }
+    </div>
+    }
+</section>
