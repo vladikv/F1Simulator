@@ -7,6 +7,7 @@ import com.f1sim.entity.*;
 import com.f1sim.repository.DriverRepository;
 import com.f1sim.repository.RaceRepository;
 import com.f1sim.repository.StrategySimulationRepository;
+import com.f1sim.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,8 @@ public class StrategySimulationService {
     private final RaceRepository raceRepository;
     private final DriverRepository driverRepository;
     private final StrategySimulationRepository simulationRepository;
+    private final RaceResultService raceResultService;
+    private final UserRepository userRepository;
 
     @Transactional
     public StrategySimulationResponse simulate(StrategySimulationRequest request, User currentUser) {
@@ -53,6 +56,10 @@ public class StrategySimulationService {
 
         double predictedTime = engine.simulateTotalRaceTime(stints, race.getCircuit(), teamPitStopTime);
         simulation.setPredictedTotalTimeSeconds(predictedTime);
+
+        if (race.getStatus() == Race.RaceStatus.FINISHED) {
+            scoreAgainstActualResult(simulation, race, driver, currentUser);
+        }
 
         StrategySimulation saved = simulationRepository.save(simulation);
 
@@ -85,5 +92,21 @@ public class StrategySimulationService {
         long minutes = ((long) totalSeconds % 3600) / 60;
         double seconds = totalSeconds % 60;
         return String.format("%d:%02d:%05.2f", hours, minutes, seconds);
+    }
+
+    private static final double MAX_ACCURACY_POINTS = 100.0;
+
+    private void scoreAgainstActualResult(StrategySimulation simulation, Race race, Driver driver, User user) {
+        raceResultService.getActualTotalTimeSeconds(race, driver).ifPresent(actualTime -> {
+            double delta = simulation.getPredictedTotalTimeSeconds() - actualTime;
+            simulation.setDeltaVsActualSeconds(delta);
+            awardPoints(user, delta);
+        });
+    }
+
+    private void awardPoints(User user, double delta) {
+        double points = Math.max(0.0, MAX_ACCURACY_POINTS - Math.abs(delta));
+        user.setRatingScore(user.getRatingScore() + points);
+        userRepository.save(user);
     }
 }

@@ -3,6 +3,7 @@ package com.f1sim.client;
 import com.f1sim.client.dto.OpenF1DriverDto;
 import com.f1sim.client.dto.OpenF1MeetingDto;
 import com.f1sim.client.dto.OpenF1SessionDto;
+import com.f1sim.client.dto.OpenF1SessionResultDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.retry.annotation.Backoff;
@@ -39,6 +40,16 @@ public class OpenF1Client {
                         .build())
                 .retrieve()
                 .body(new org.springframework.core.ParameterizedTypeReference<List<OpenF1SessionDto>>() {});
+    }
+
+    @Retryable(retryFor = Exception.class, maxAttempts = 3, backoff = @Backoff(delay = 500, multiplier = 2))
+    public List<OpenF1SessionResultDto> getSessionResult(int sessionKey) {
+        return openF1RestClient.get()
+                .uri(uriBuilder -> uriBuilder.path("/session_result")
+                        .queryParam("session_key", sessionKey)
+                        .build())
+                .retrieve()
+                .body(new org.springframework.core.ParameterizedTypeReference<List<OpenF1SessionResultDto>>() {});
     }
 
     @Retryable(retryFor = Exception.class, maxAttempts = 3, backoff = @Backoff(delay = 500, multiplier = 2))

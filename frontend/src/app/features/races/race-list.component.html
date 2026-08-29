@@ -17,7 +17,7 @@
                 [ngModel]="selectedDriverId()"
                 (ngModelChange)="selectedDriverId.set(+$event)">
             @for (d of drivers(); track d.id) {
-            <option [value]="d.id">{{ d.fullName }} ({{ d.teamName }})</option>
+            <option [value]="d.id">{{ d.driverCode }} — {{ d.teamName }}</option>
             }
         </select>
         }

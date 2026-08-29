@@ -1,5 +1,5 @@
 <div class="track-wrap">
-    <svg [attr.viewBox]="track().viewBox" class="track-svg">
+    <svg [attr.viewBox]="track().viewBox" preserveAspectRatio="xMidYMid meet" class="track-svg">
         <path [attr.id]="pathId" [attr.d]="track().fullPathD" fill="none" stroke="none" />
 
         @for (sector of track().sectors; track sector.name) {

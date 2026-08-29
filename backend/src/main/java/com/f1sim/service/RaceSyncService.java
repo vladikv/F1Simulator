@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -49,12 +50,22 @@ public class RaceSyncService {
         for (OpenF1MeetingDto meeting : meetings) {
             Circuit circuit = upsertCircuit(meeting);
 
-            List<OpenF1SessionDto> raceSessions = openF1Client.getRaceSessions(meeting.meetingKey());
+            List<OpenF1SessionDto> raceSessions;
+            try {
+                raceSessions = openF1Client.getRaceSessions(meeting.meetingKey());
+            } catch (HttpClientErrorException.NotFound e) {
+                log.info("No Race session for meeting {} ({}), skipping", meeting.meetingKey(), meeting.meetingName());
+                continue;
+            } finally {
+                throttle();
+            }
+
             for (OpenF1SessionDto session : raceSessions) {
                 Race race = upsertRace(meeting, session, circuit);
                 racesCreated++;
 
                 List<OpenF1DriverDto> drivers = openF1Client.getDrivers(session.sessionKey());
+                throttle();
                 for (OpenF1DriverDto driverDto : drivers) {
                     upsertDriver(driverDto);
                     driversUpserted++;
@@ -65,6 +76,7 @@ public class RaceSyncService {
         log.info("Sync complete: {} meetings, {} races, {} driver entries", meetings.size(), racesCreated, driversUpserted);
         return new SyncResult(meetings.size(), racesCreated, driversUpserted);
     }
+
 
     private Circuit upsertCircuit(OpenF1MeetingDto meeting) {
         return circuitRepository.findByExternalCircuitKey(meeting.circuitKey())
@@ -132,6 +144,20 @@ public class RaceSyncService {
     private LocalDateTime parseDateTime(String isoDateTime) {
         if (isoDateTime == null) return LocalDateTime.now(ZoneOffset.UTC);
         return LocalDateTime.ofInstant(Instant.parse(isoDateTime), ZoneOffset.UTC);
+    }
+
+    // OpenF1 caps free-tier usage at 30 requests/minute. A full season sync
+    // can easily need 50+ calls (sessions + drivers, per meeting), so pace
+    // requests instead of firing them all at once — 2.5s spacing keeps us
+    // safely under 24 requests/minute even in the worst case.
+    private static final long OPENF1_REQUEST_SPACING_MS = 2_500;
+
+    private void throttle() {
+        try {
+            Thread.sleep(OPENF1_REQUEST_SPACING_MS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     public record SyncResult(int meetingsFound, int racesUpserted, int driverEntriesUpserted) {}

@@ -1,0 +1,25 @@
+services:
+  f1sim-db:
+    image: postgres:15
+    container_name: f1sim-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: f1sim
+      POSTGRES_PASSWORD: f1sim
+      POSTGRES_DB: f1sim
+    ports:
+      - "5435:5432"
+    volumes:
+      - f1sim-db-data:/var/lib/postgresql/data
+
+  f1sim-redis:
+    image: redis
+    container_name: f1sim-redis
+    restart: unless-stopped
+    ports:
+      - "6381:6379"
+
+volumes:
+  f1sim-db-data:
+    external: true
+    name: afcc690a74489c9d4b2f6e8830ab6c6f09b107a4699d3c9a2af6888fff7dc8aa
