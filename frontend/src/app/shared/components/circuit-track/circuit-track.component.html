@@ -7,15 +7,16 @@
                 [attr.d]="sector.pathD"
                 [style.stroke]="sector.colorVar"
                 class="sector-accent"
+                fill="none"
         />
         }
 
-        <path [attr.d]="track().fullPathD" class="track-line" />
+        <path [attr.d]="track().fullPathD" class="track-line" fill="none" />
 
         @for (corner of track().corners; track corner.number) {
         <g class="corner-marker" [attr.transform]="'translate(' + corner.x + ',' + corner.y + ')'">
             <circle r="3.5" class="corner-dot" />
-            <text class="corner-label" x="6" y="3">{{ corner.number }}</text>
+            <text class="corner-label" x="10" y="5">{{ corner.number }}</text>
         </g>
         }
 
@@ -25,10 +26,4 @@
             </animateMotion>
         </circle>
     </svg>
-
-    <div class="track-legend">
-        <span class="legend-item" style="--dot-color: var(--purple-sector)">S1</span>
-        <span class="legend-item" style="--dot-color: var(--green-pb)">S2</span>
-        <span class="legend-item" style="--dot-color: var(--amber-warn)">S3</span>
-    </div>
 </div>

@@ -1,0 +1,40 @@
+<section class="login">
+    <div class="login-panel">
+        <span class="login-eyebrow">PIT WALL // ACCESS</span>
+        <h1 class="login-title">Enter the <span class="accent">pit lane</span>.</h1>
+
+        <form class="login-form" (ngSubmit)="submit()">
+            <label class="login-field">
+                <span class="login-label">USERNAME</span>
+                <input
+                        [(ngModel)]="username"
+                        name="username"
+                        type="text"
+                        autocomplete="username"
+                        required />
+            </label>
+
+            <label class="login-field">
+                <span class="login-label">PASSWORD</span>
+                <input
+                        [(ngModel)]="password"
+                        name="password"
+                        type="password"
+                        autocomplete="current-password"
+                        required />
+            </label>
+
+            @if (error()) {
+            <p class="login-error">{{ error() }}</p>
+            }
+
+            <button type="submit" class="login-submit" [disabled]="isSubmitting()">
+                @if (isSubmitting()) {
+                Logging in…
+                } @else {
+                Log in →
+                }
+            </button>
+        </form>
+    </div>
+</section>

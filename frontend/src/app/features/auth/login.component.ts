@@ -8,14 +8,8 @@ import { AuthService } from '../../core/services/auth.service';
   selector: 'app-login',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  template: `
-    <form (ngSubmit)="submit()">
-      <input [(ngModel)]="username" name="username" placeholder="Username" />
-      <input [(ngModel)]="password" name="password" type="password" placeholder="Password" />
-      <button type="submit">Log in</button>
-      @if (error()) { <p class="error">{{ error() }}</p> }
-    </form>
-  `
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.scss'
 })
 export class LoginComponent {
   private readonly auth = inject(AuthService);
@@ -23,12 +17,19 @@ export class LoginComponent {
 
   username = '';
   password = '';
+  isSubmitting = signal(false);
   error = signal<string | null>(null);
 
   submit(): void {
+    this.isSubmitting.set(true);
+    this.error.set(null);
+
     this.auth.login({ username: this.username, password: this.password }).subscribe({
       next: () => this.router.navigate(['/']),
-      error: () => this.error.set('Invalid username or password')
+      error: () => {
+        this.error.set('Invalid username or password');
+        this.isSubmitting.set(false);
+      }
     });
   }
 }
