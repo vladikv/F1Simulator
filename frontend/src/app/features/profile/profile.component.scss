@@ -1,0 +1,21 @@
+.profile {
+  padding: 4rem 6vw;
+}
+
+.profile-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  color: var(--f1-red);
+}
+
+.profile-title {
+  font-family: var(--font-heading);
+  font-size: 3rem;
+  margin: 0.5rem 0;
+}
+
+.profile-placeholder {
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}

@@ -1,6 +1,8 @@
 package com.f1sim.service;
 
 import com.f1sim.dto.StrategySimulationRequest;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.f1sim.dto.LeaderboardEntryDto;
 import com.f1sim.dto.StrategySimulationResponse;
 import com.f1sim.dto.StintRequest;
 import com.f1sim.entity.*;
@@ -32,6 +34,7 @@ public class StrategySimulationService {
     private final StrategySimulationRepository simulationRepository;
     private final RaceResultService raceResultService;
     private final UserRepository userRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
     public StrategySimulationResponse simulate(StrategySimulationRequest request, User currentUser) {
@@ -108,5 +111,10 @@ public class StrategySimulationService {
         double points = Math.max(0.0, MAX_ACCURACY_POINTS - Math.abs(delta));
         user.setRatingScore(user.getRatingScore() + points);
         userRepository.save(user);
+
+        messagingTemplate.convertAndSend(
+                "/topic/leaderboard",
+                new LeaderboardEntryDto(user.getId(), user.getUsername(), user.getRatingScore())
+        );
     }
 }

@@ -1,0 +1,17 @@
+<nav class="navbar">
+    <a routerLink="/" class="navbar-brand">PIT WALL</a>
+
+    <div class="navbar-links">
+        <a routerLink="/leaderboard" class="navbar-link">Leaderboard</a>
+
+        @if (auth.isAuthenticated()) {
+        <a routerLink="/profile" class="navbar-username">{{ auth.username() }}</a>
+        <button type="button" class="navbar-logout" (click)="logout()">Log out</button>
+        } @else {
+        <a routerLink="/login" class="navbar-link">Log in</a>
+        <a routerLink="/register" class="navbar-link navbar-link--cta">Sign up</a>
+        }
+    </div>
+</nav>
+
+<router-outlet />

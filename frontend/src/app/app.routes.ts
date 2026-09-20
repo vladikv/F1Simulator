@@ -24,7 +24,12 @@ export const routes: Routes = [
       import('./features/strategy-builder/strategy-builder.component').then(m => m.StrategyBuilderComponent)
   },
   {
+    path: 'profile',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent)
+  },
+  {
     path: 'leaderboard',
     loadComponent: () => import('./features/leaderboard/leaderboard.component').then(m => m.LeaderboardComponent)
-  }
+  },
 ];

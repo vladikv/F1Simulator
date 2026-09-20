@@ -23,7 +23,9 @@ const PIT_STOP_ALLOWANCE_SECONDS = 2 * 23;
 export class RaceListComponent {
   private readonly raceApi = inject(RaceApiService);
 
-  readonly availableTracks = CIRCUIT_TRACKS;
+  readonly availableTracks = CIRCUIT_TRACKS.filter(
+      t => t.id in CIRCUIT_TO_OPENF1_NAME
+  );
   readonly selectedTrackId = signal(
       CIRCUIT_TRACKS.find(t => t.id === 'mc-1929')?.id ?? CIRCUIT_TRACKS[0].id
   );

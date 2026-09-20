@@ -7,7 +7,10 @@
 }
 
 .builder-header {
-  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
 }
 
 .builder-eyebrow {
@@ -234,14 +237,26 @@
 }
 
 .back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
   font-family: var(--font-mono);
   font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
   color: var(--text-dim);
   text-decoration: none;
-  margin-bottom: 1rem;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--border-hairline);
+  border-radius: 999px;
+  width: fit-content;
+  transition: all 0.15s ease;
 
   &:hover {
     color: var(--f1-red);
+    border-color: var(--f1-red);
+    background: rgba(225, 6, 0, 0.08);
   }
 }
 
