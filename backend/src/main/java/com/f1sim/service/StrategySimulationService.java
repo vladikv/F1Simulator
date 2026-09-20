@@ -54,7 +54,7 @@ public class StrategySimulationService {
                 ? driver.getTeam().getAvgPitStopSeconds()
                 : 2.5; // fallback average pit stop time
 
-        double predictedTime = engine.simulateTotalRaceTime(stints, race.getCircuit(), teamPitStopTime);
+        double predictedTime = engine.simulateTotalRaceTime(stints, race.getCircuit(), race.getTotalLaps(), teamPitStopTime);
         simulation.setPredictedTotalTimeSeconds(predictedTime);
 
         if (race.getStatus() == Race.RaceStatus.FINISHED) {

@@ -1,11 +1,15 @@
 import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { StrategyApiService } from '../../core/services/strategy-api.service';
 import { RaceApiService } from '../../core/services/race-api.service';
 import { RaceSummary } from '../../core/models/race.model';
 import { Stint, StrategySimulationResponse, TyreCompound } from '../../core/models/strategy.model';
 import { StrategyRingComponent } from '../../shared/components/strategy-ring/strategy-ring.component';
+import { CircuitTrackComponent } from '../../shared/components/circuit-track/circuit-track.component';
+import { CIRCUIT_TRACKS } from '../../core/data/circuit-tracks.data';
+import { CIRCUIT_TO_OPENF1_NAME } from '../../core/data/circuit-race-map';
 
 const COMPOUND_COLOR_VAR: Record<TyreCompound, string> = {
   SOFT: 'var(--tyre-soft)',
@@ -18,7 +22,7 @@ const COMPOUND_COLOR_VAR: Record<TyreCompound, string> = {
 @Component({
   selector: 'app-strategy-builder',
   standalone: true,
-  imports: [CommonModule, FormsModule, StrategyRingComponent],
+  imports: [CommonModule, FormsModule, StrategyRingComponent, CircuitTrackComponent, RouterLink],
   templateUrl: './strategy-builder.component.html',
   styleUrl: './strategy-builder.component.scss'
 })
@@ -32,6 +36,18 @@ export class StrategyBuilderComponent {
 
   readonly race = signal<RaceSummary | null>(null);
   readonly totalLaps = computed(() => this.race()?.totalLaps ?? 0);
+
+  // Reverse lookup: race.circuitName (OpenF1) -> local track id -> full track data.
+  // Same matching key as race-list's matchedRace(), just inverted.
+  readonly matchedTrack = computed(() => {
+    const circuitName = this.race()?.circuitName;
+    if (!circuitName) return null;
+
+    const trackId = Object.entries(CIRCUIT_TO_OPENF1_NAME)
+        .find(([, name]) => name === circuitName)?.[0];
+
+    return CIRCUIT_TRACKS.find(t => t.id === trackId) ?? null;
+  });
 
   constructor() {
     // effect() re-runs whenever raceId() changes — covers navigating
@@ -80,9 +96,22 @@ export class StrategyBuilderComponent {
   }
 
   updateStint(index: number, patch: Partial<Stint>): void {
-    this.stints.update(list =>
-        list.map((stint, i) => (i === index ? { ...stint, ...patch } : stint))
-    );
+    this.stints.update(list => {
+      const updated = list.map((stint, i) => (i === index ? { ...stint, ...patch } : stint));
+
+      // If endLap changed, push the next stint's startLap forward to stay
+      // contiguous — but only if the next stint hasn't been touched
+      // manually to start elsewhere (i.e. it was already startLap = old endLap + 1).
+      if (patch.endLap !== undefined && index + 1 < updated.length) {
+        const oldEndLap = list[index].endLap;
+        const nextStint = updated[index + 1];
+        if (nextStint.startLap === oldEndLap + 1) {
+          updated[index + 1] = { ...nextStint, startLap: patch.endLap + 1 };
+        }
+      }
+
+      return updated;
+    });
   }
 
   runSimulation(): void {
@@ -116,5 +145,23 @@ export class StrategyBuilderComponent {
 
   stintLabel(index: number): string {
     return String(index + 1).padStart(2, '0');
+  }
+
+  deltaClass(res: StrategySimulationResponse): 'faster' | 'slower' | null {
+    if (res.deltaVsActualSeconds === null) return null;
+    return res.deltaVsActualSeconds < 0 ? 'faster' : 'slower';
+  }
+
+  deltaLabel(res: StrategySimulationResponse): string {
+    if (res.deltaVsActualSeconds === null) return '—';
+
+    const sign = res.deltaVsActualSeconds > 0 ? '+' : '-';
+    const totalMs = Math.round(Math.abs(res.deltaVsActualSeconds) * 1000);
+
+    const minutes = Math.floor(totalMs / 60000);
+    const seconds = Math.floor((totalMs % 60000) / 1000);
+    const millis = totalMs % 1000;
+
+    return `${sign}${minutes}:${seconds.toString().padStart(2, '0')}.${millis.toString().padStart(3, '0')}`;
   }
 }

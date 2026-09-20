@@ -2,17 +2,101 @@
 <section class="builder">
   <div class="builder-editor">
     <header class="builder-header">
+      <a routerLink="/" class="back-link">← Back to race select</a>
       <span class="builder-eyebrow">PIT WALL // STRATEGY BUILDER</span>
       <h2 class="builder-title">{{ raceData.grandPrixName }}</h2>
     </header>
 
-    <!-- ...решта розмітки без змін, як у попередній версії... -->
+    <div class="stint-list">
+      @for (stint of stints(); track $index; let sIndex = $index) {
+      <div class="stint-card" [style.--stint-color]="colorFor(stint.compound)">
+        <div class="stint-card-head">
+          <span class="stint-index">STINT {{ stintLabel(sIndex) }}</span>
+          <button type="button" class="remove-btn"
+                  [disabled]="stints().length === 1"
+                  (click)="removeStint(sIndex)">✕</button>
+        </div>
+
+        <div class="compound-picker">
+          @for (compound of compounds; track compound) {
+          <button type="button" class="compound-chip"
+                  [class.active]="stint.compound === compound"
+                  [style.--chip-color]="colorFor(compound)"
+                  (click)="updateStint(sIndex, { compound })">
+            {{ compound }}
+          </button>
+          }
+        </div>
+
+        <div class="lap-range">
+          <label class="lap-field">
+            <span class="lap-label">FROM</span>
+            <input type="number" min="1"
+                   [ngModel]="stint.startLap"
+                   (ngModelChange)="updateStint(sIndex, { startLap: +$event })" />
+          </label>
+          <span class="lap-arrow">→</span>
+          <label class="lap-field">
+            <span class="lap-label">TO</span>
+            <input type="number" min="1"
+                   [ngModel]="stint.endLap"
+                   (ngModelChange)="updateStint(sIndex, { endLap: +$event })" />
+          </label>
+        </div>
+      </div>
+      }
+    </div>
+
+    <button type="button" class="add-stint-btn" (click)="addStint()">+ Add stint</button>
+
+    <div class="coverage" [class.invalid]="!isStrategyValid()">
+      <div class="coverage-track">
+        <div class="coverage-fill" [style.width.%]="coveragePercent()"></div>
+      </div>
+      <span class="coverage-label">{{ lapsCovered() }} / {{ totalLaps() }} laps covered</span>
+    </div>
+
+    @if (errorMessage()) {
+    <p class="error-msg">{{ errorMessage() }}</p>
+    }
+
+    <button type="button" class="simulate-btn"
+            [disabled]="isSimulating()"
+            (click)="runSimulation()">
+      @if (isSimulating()) { Simulating… } @else { Run simulation → }
+    </button>
   </div>
 
   <aside class="builder-readout">
-    <!-- ...без змін... -->
+
+    @if (matchedTrack(); as track) {
+    <app-circuit-track [track]="track" class="readout-track" />
+    }
+
+    <app-strategy-ring
+            [stints]="stints()"
+            [totalLaps]="totalLaps()"
+            [formattedTotalTime]="result()?.formattedTotalTime ?? null" />
+
+    @if (result(); as res) {
+    <div class="result-card">
+      <span class="result-label">VS ACTUAL RACE</span>
+      <span class="result-delta"
+            [class.faster]="deltaClass(res) === 'faster'"
+            [class.slower]="deltaClass(res) === 'slower'">
+        {{ deltaLabel(res) }}
+      </span>
+          <span class="result-disclaimer">
+        Model doesn't account for safety cars, red flags or other race incidents — treat comparisons cautiously.
+      </span>
+    </div>
+    } @else {
+    <div class="result-card result-card--empty">
+      <span class="result-label">AWAITING SIMULATION</span>
+    </div>
+    }
   </aside>
 </section>
 } @else {
-<div class="builder-loading">Завантаження гонки…</div>
+<div class="builder-loading">Loading race…</div>
 }

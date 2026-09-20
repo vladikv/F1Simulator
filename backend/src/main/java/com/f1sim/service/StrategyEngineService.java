@@ -34,15 +34,17 @@ public class StrategyEngineService {
      * @param teamPitStopTime team-specific average pit stop duration in seconds
      * @return predicted total race time in seconds
      */
-    public double simulateTotalRaceTime(List<TyreStint> stints, Circuit circuit, double teamPitStopTime) {
-        validateStintsCoverRace(stints, circuit.getTotalLaps());
+    public double simulateTotalRaceTime(List<TyreStint> stints, Circuit circuit, Integer totalLaps, double teamPitStopTime) {
+        if (totalLaps == null) {
+            throw new IllegalStateException("Race has no total lap count set — cannot validate strategy coverage");
+        }
+        validateStintsCoverRace(stints, totalLaps);
 
         double totalTime = 0.0;
         for (int i = 0; i < stints.size(); i++) {
             TyreStint stint = stints.get(i);
             totalTime += simulateStintTime(stint);
 
-            // Every stint except the last one ends with a pit stop.
             boolean isLastStint = i == stints.size() - 1;
             if (!isLastStint) {
                 totalTime += circuit.getPitLaneTimeLossSeconds() + teamPitStopTime;
