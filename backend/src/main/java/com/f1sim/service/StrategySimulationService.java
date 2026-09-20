@@ -57,7 +57,9 @@ public class StrategySimulationService {
                 ? driver.getTeam().getAvgPitStopSeconds()
                 : 2.5; // fallback average pit stop time
 
-        double predictedTime = engine.simulateTotalRaceTime(stints, race.getCircuit(), race.getTotalLaps(), teamPitStopTime);
+        double predictedTime = engine.simulateTotalRaceTime(
+                stints, race.getCircuit(), race.getTotalLaps(), teamPitStopTime, race.getWeatherWindows()
+        );
         simulation.setPredictedTotalTimeSeconds(predictedTime);
 
         if (race.getStatus() == Race.RaceStatus.FINISHED) {
@@ -101,7 +103,12 @@ public class StrategySimulationService {
 
     private void scoreAgainstActualResult(StrategySimulation simulation, Race race, Driver driver, User user) {
         raceResultService.getActualTotalTimeSeconds(race, driver).ifPresent(actualTime -> {
-            double delta = simulation.getPredictedTotalTimeSeconds() - actualTime;
+            double incidentTimeLoss = race.getIncidents().stream()
+                    .mapToDouble(i -> i.getTimeLossSeconds() != null ? i.getTimeLossSeconds() : 0.0)
+                    .sum();
+
+            double correctedActualTime = actualTime - incidentTimeLoss;
+            double delta = simulation.getPredictedTotalTimeSeconds() - correctedActualTime;
             simulation.setDeltaVsActualSeconds(delta);
             awardPoints(user, delta);
         });

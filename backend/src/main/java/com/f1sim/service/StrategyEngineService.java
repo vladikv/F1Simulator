@@ -1,6 +1,7 @@
 package com.f1sim.service;
 
 import com.f1sim.entity.Circuit;
+import com.f1sim.entity.RaceWeatherWindow;
 import com.f1sim.entity.TyreStint;
 import com.f1sim.enums.TyreCompound;
 import org.springframework.stereotype.Service;
@@ -25,16 +26,16 @@ import java.util.List;
 public class StrategyEngineService {
 
     private static final double BASE_LAP_TIME_SECONDS = 90.0;
+    private static final double DRY_TYRES_IN_RAIN_PENALTY_SECONDS = 8.0;
+    private static final double WET_TYRES_ON_DRY_TRACK_PENALTY_SECONDS = 2.0;
 
-    /**
-     * Computes the predicted total race time for a full strategy.
-     *
-     * @param stints          ordered stints covering the full race distance
-     * @param circuit         circuit providing pit lane loss and lap count
-     * @param teamPitStopTime team-specific average pit stop duration in seconds
-     * @return predicted total race time in seconds
-     */
-    public double simulateTotalRaceTime(List<TyreStint> stints, Circuit circuit, Integer totalLaps, double teamPitStopTime) {
+    public double simulateTotalRaceTime(
+            List<TyreStint> stints,
+            Circuit circuit,
+            Integer totalLaps,
+            double teamPitStopTime,
+            List<RaceWeatherWindow> weatherWindows
+    ) {
         if (totalLaps == null) {
             throw new IllegalStateException("Race has no total lap count set — cannot validate strategy coverage");
         }
@@ -43,7 +44,7 @@ public class StrategyEngineService {
         double totalTime = 0.0;
         for (int i = 0; i < stints.size(); i++) {
             TyreStint stint = stints.get(i);
-            totalTime += simulateStintTime(stint);
+            totalTime += simulateStintTime(stint, weatherWindows);
 
             boolean isLastStint = i == stints.size() - 1;
             if (!isLastStint) {
@@ -53,20 +54,32 @@ public class StrategyEngineService {
         return totalTime;
     }
 
-    /**
-     * Simulates the time taken to complete a single stint, applying
-     * per-lap tyre degradation on top of the compound's base pace.
-     */
-    private double simulateStintTime(TyreStint stint) {
+    private double simulateStintTime(TyreStint stint, List<RaceWeatherWindow> weatherWindows) {
         TyreCompound compound = stint.getCompound();
-        int stintLength = stint.getEndLap() - stint.getStartLap() + 1;
 
         double stintTime = 0.0;
-        for (int lap = 1; lap <= stintLength; lap++) {
-            double degradationPenalty = compound.getDegradationPerLapSeconds() * (lap - 1);
-            stintTime += BASE_LAP_TIME_SECONDS + compound.getPaceDeltaSeconds() + degradationPenalty;
+        for (int lap = stint.getStartLap(); lap <= stint.getEndLap(); lap++) {
+            int lapIndexInStint = lap - stint.getStartLap();
+            double degradationPenalty = compound.getDegradationPerLapSeconds() * lapIndexInStint;
+
+            double weatherPenalty = weatherMismatchPenalty(compound, lap, weatherWindows);
+
+            stintTime += BASE_LAP_TIME_SECONDS + compound.getPaceDeltaSeconds() + degradationPenalty + weatherPenalty;
         }
         return stintTime;
+    }
+
+    private double weatherMismatchPenalty(TyreCompound compound, int lap, List<RaceWeatherWindow> weatherWindows) {
+        boolean isWetLap = weatherWindows.stream()
+                .anyMatch(w -> lap >= w.getStartLap() && lap <= w.getEndLap());
+
+        if (isWetLap && !compound.isWetWeatherCompound()) {
+            return DRY_TYRES_IN_RAIN_PENALTY_SECONDS;
+        }
+        if (!isWetLap && compound.isWetWeatherCompound()) {
+            return WET_TYRES_ON_DRY_TRACK_PENALTY_SECONDS;
+        }
+        return 0.0;
     }
 
     /**

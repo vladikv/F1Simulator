@@ -3,6 +3,8 @@ package com.f1sim.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "races")
@@ -42,4 +44,12 @@ public class Race {
     private RaceStatus status;
 
     public enum RaceStatus { UPCOMING, LIVE, FINISHED }
+
+    @OneToMany(mappedBy = "race", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<RaceIncident> incidents = new ArrayList<>();
+
+    @OneToMany(mappedBy = "race", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<RaceWeatherWindow> weatherWindows = new ArrayList<>();
 }

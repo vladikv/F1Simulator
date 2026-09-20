@@ -35,4 +35,8 @@ public enum TyreCompound {
     public int getTypicalStintLengthLaps() {
         return typicalStintLengthLaps;
     }
+
+    public boolean isWetWeatherCompound() {
+        return this == INTERMEDIATE || this == WET;
+    }
 }

@@ -1,9 +1,7 @@
 package com.f1sim.service;
 
 import com.f1sim.client.OpenF1Client;
-import com.f1sim.client.dto.OpenF1DriverDto;
-import com.f1sim.client.dto.OpenF1MeetingDto;
-import com.f1sim.client.dto.OpenF1SessionDto;
+import com.f1sim.client.dto.*;
 import com.f1sim.entity.Circuit;
 import com.f1sim.entity.Driver;
 import com.f1sim.entity.Race;
@@ -23,6 +21,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -32,6 +31,9 @@ public class RaceSyncService {
     private static final double DEFAULT_PIT_LANE_LOSS_SECONDS = 22.0;
     private static final int DEFAULT_OVERTAKING_DIFFICULTY = 5;
     private static final double DEFAULT_TEAM_PIT_STOP_SECONDS = 2.4;
+    private static final long OPENF1_REQUEST_SPACING_MS = 3_000;
+    private final RaceIncidentSyncService incidentSyncService;
+    private final RaceWeatherSyncService weatherSyncService;
 
     private final OpenF1Client openF1Client;
     private final CircuitRepository circuitRepository;
@@ -56,16 +58,16 @@ public class RaceSyncService {
             } catch (HttpClientErrorException.NotFound e) {
                 log.info("No Race session for meeting {} ({}), skipping", meeting.meetingKey(), meeting.meetingName());
                 continue;
-            } finally {
-                throttle();
             }
 
             for (OpenF1SessionDto session : raceSessions) {
                 Race race = upsertRace(meeting, session, circuit);
                 racesCreated++;
 
+                syncIncidentsAndWeather(race, session.sessionKey());
+
                 List<OpenF1DriverDto> drivers = openF1Client.getDrivers(session.sessionKey());
-                throttle();
+
                 for (OpenF1DriverDto driverDto : drivers) {
                     upsertDriver(driverDto);
                     driversUpserted++;
@@ -141,24 +143,38 @@ public class RaceSyncService {
         );
     }
 
+    private void syncIncidentsAndWeather(Race race, int sessionKey) {
+        try {
+            List<OpenF1SessionResultDto> results = openF1Client.getSessionResult(sessionKey);
+
+            Integer winnerDriverNumber = results.stream()
+                    .filter(r -> r.position() != null && r.position() == 1)
+                    .map(OpenF1SessionResultDto::driverNumber)
+                    .findFirst()
+                    .orElse(null);
+
+            if (winnerDriverNumber == null) {
+                log.warn("No winner found for session {}, skipping incident/weather sync", sessionKey);
+                return;
+            }
+
+            List<OpenF1LapDto> referenceLaps = openF1Client.getLaps(sessionKey, winnerDriverNumber);
+
+            incidentSyncService.sync(race, sessionKey, winnerDriverNumber, referenceLaps);
+
+            List<OpenF1WeatherDto> weatherSamples = openF1Client.getWeather(sessionKey);
+
+            weatherSyncService.sync(race, weatherSamples, referenceLaps);
+        } catch (Exception e) {
+            log.warn("Incident/weather sync failed for session {}: {}", sessionKey, e.getMessage());
+        }
+    }
+
     private LocalDateTime parseDateTime(String isoDateTime) {
         if (isoDateTime == null) return LocalDateTime.now(ZoneOffset.UTC);
         return LocalDateTime.ofInstant(Instant.parse(isoDateTime), ZoneOffset.UTC);
     }
 
-    // OpenF1 caps free-tier usage at 30 requests/minute. A full season sync
-    // can easily need 50+ calls (sessions + drivers, per meeting), so pace
-    // requests instead of firing them all at once — 2.5s spacing keeps us
-    // safely under 24 requests/minute even in the worst case.
-    private static final long OPENF1_REQUEST_SPACING_MS = 2_500;
-
-    private void throttle() {
-        try {
-            Thread.sleep(OPENF1_REQUEST_SPACING_MS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
 
     public record SyncResult(int meetingsFound, int racesUpserted, int driverEntriesUpserted) {}
 }
