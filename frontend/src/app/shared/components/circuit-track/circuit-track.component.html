@@ -16,7 +16,12 @@
         @for (corner of track().corners; track corner.number) {
         <g class="corner-marker" [attr.transform]="'translate(' + corner.x + ',' + corner.y + ')'">
             <circle r="3.5" class="corner-dot" />
-            <text class="corner-label" x="10" y="5">{{ corner.number }}</text>
+            <text
+                    class="corner-label"
+                    [attr.x]="corner.labelOffset?.dx ?? 10"
+                    [attr.y]="corner.labelOffset?.dy ?? 5">
+                {{ corner.number }}
+            </text>
         </g>
         }
 

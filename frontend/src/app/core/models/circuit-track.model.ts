@@ -2,6 +2,7 @@ export interface TrackCorner {
     number: number;
     x: number;
     y: number;
+    labelOffset?: { dx: number; dy: number }; // manual override for tightly-clustered corners
 }
 
 export interface TrackSector {
