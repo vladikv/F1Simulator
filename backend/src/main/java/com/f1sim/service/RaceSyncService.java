@@ -6,10 +6,7 @@ import com.f1sim.entity.Circuit;
 import com.f1sim.entity.Driver;
 import com.f1sim.entity.Race;
 import com.f1sim.entity.Team;
-import com.f1sim.repository.CircuitRepository;
-import com.f1sim.repository.DriverRepository;
-import com.f1sim.repository.RaceRepository;
-import com.f1sim.repository.TeamRepository;
+import com.f1sim.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -67,6 +64,8 @@ public class RaceSyncService {
     private final RaceRepository raceRepository;
     private final TeamRepository teamRepository;
     private final DriverRepository driverRepository;
+    private final RaceIncidentRepository incidentRepository;
+    private final RaceWeatherWindowRepository weatherWindowRepository;
 
     @Transactional
     public SyncResult syncSeason(int year) {
@@ -192,6 +191,9 @@ public class RaceSyncService {
             }
 
             List<OpenF1LapDto> referenceLaps = openF1Client.getLaps(sessionKey, winnerDriverNumber);
+
+            incidentRepository.deleteByRaceId(race.getId());
+            weatherWindowRepository.deleteByRaceId(race.getId());
 
             incidentSyncService.sync(race, sessionKey, winnerDriverNumber, referenceLaps);
 

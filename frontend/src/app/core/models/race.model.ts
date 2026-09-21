@@ -10,6 +10,11 @@ export interface RaceSummary {
     totalLaps: number | null;
 }
 
+export interface WeatherWindow {
+    startLap: number;
+    endLap: number;
+}
+
 export interface RaceDriver {
     id: number;
     fullName: string;

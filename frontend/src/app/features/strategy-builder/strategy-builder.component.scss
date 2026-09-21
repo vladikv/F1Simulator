@@ -6,6 +6,18 @@
   padding: 3rem 6vw;
 }
 
+.weather-notice {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--tyre-intermediate);
+  background: rgba(68, 187, 68, 0.08);
+  border: 1px solid var(--tyre-intermediate);
+  border-radius: var(--radius-panel);
+  padding: 0.6rem 1rem;
+  margin-bottom: 1.5rem;
+  width: fit-content;
+}
+
 .builder-header {
   display: flex;
   flex-direction: column;

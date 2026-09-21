@@ -4,7 +4,7 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { StrategyApiService } from '../../core/services/strategy-api.service';
 import { RaceApiService } from '../../core/services/race-api.service';
-import { RaceSummary } from '../../core/models/race.model';
+import {RaceSummary, WeatherWindow} from '../../core/models/race.model';
 import { Stint, StrategySimulationResponse, TyreCompound } from '../../core/models/strategy.model';
 import { StrategyRingComponent } from '../../shared/components/strategy-ring/strategy-ring.component';
 import { CircuitTrackComponent } from '../../shared/components/circuit-track/circuit-track.component';
@@ -37,6 +37,8 @@ export class StrategyBuilderComponent {
   readonly race = signal<RaceSummary | null>(null);
   readonly totalLaps = computed(() => this.race()?.totalLaps ?? 0);
 
+  readonly weatherWindows = signal<WeatherWindow[]>([]);
+
   // Reverse lookup: race.circuitName (OpenF1) -> local track id -> full track data.
   // Same matching key as race-list's matchedRace(), just inverted.
   readonly matchedTrack = computed(() => {
@@ -56,6 +58,7 @@ export class StrategyBuilderComponent {
     effect(() => {
       const id = this.raceId();
       this.raceApi.getRace(id).subscribe(race => this.race.set(race));
+      this.raceApi.getWeatherWindows(id).subscribe(windows => this.weatherWindows.set(windows));
     });
   }
 

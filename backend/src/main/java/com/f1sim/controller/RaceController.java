@@ -2,8 +2,10 @@ package com.f1sim.controller;
 
 import com.f1sim.dto.RaceDriverDto;
 import com.f1sim.dto.RaceSummaryDto;
+import com.f1sim.dto.RaceWeatherWindowDto;
 import com.f1sim.entity.Race;
 import com.f1sim.repository.RaceRepository;
+import com.f1sim.repository.RaceWeatherWindowRepository;
 import com.f1sim.service.RaceDriverService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
@@ -20,6 +22,7 @@ public class RaceController {
 
     private final RaceRepository raceRepository;
     private final RaceDriverService raceDriverService;
+    private final RaceWeatherWindowRepository raceWeatherWindowRepository;
 
     @GetMapping
     public List<RaceSummaryDto> listRaces() {
@@ -39,6 +42,13 @@ public class RaceController {
     @GetMapping("/{id}/drivers")
     public List<RaceDriverDto> getDriversForRace(@PathVariable Long id) {
         return raceDriverService.getDriversForRace(id);
+    }
+
+    @GetMapping("/{id}/weather")
+    public List<RaceWeatherWindowDto> getWeatherWindows(@PathVariable Long id) {
+        return raceWeatherWindowRepository.findByRaceId(id).stream()
+                .map(w -> new RaceWeatherWindowDto(w.getStartLap(), w.getEndLap()))
+                .toList();
     }
 
     private RaceSummaryDto toSummary(Race race) {

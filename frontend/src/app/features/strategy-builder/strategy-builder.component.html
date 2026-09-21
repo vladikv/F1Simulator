@@ -5,6 +5,13 @@
       <a routerLink="/" class="back-link">← Back to race select</a>
       <span class="builder-eyebrow">PIT WALL // STRATEGY BUILDER</span>
       <h2 class="builder-title">{{ raceData.grandPrixName }}</h2>
+      @if (weatherWindows().length > 0) {
+      <div class="weather-notice">
+        🌧️ Rain during this race: @for (w of weatherWindows(); track w.startLap; let last = $last) {
+        laps {{ w.startLap }}–{{ w.endLap }}@if (!last) {, }
+        }
+      </div>
+      }
     </header>
 
     <div class="stint-list">
