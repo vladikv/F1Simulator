@@ -20,12 +20,39 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class RaceSyncService {
+    private static final Map<String, Integer> CIRCUIT_LAP_COUNTS = Map.ofEntries(
+            Map.entry("Yas Marina Circuit", 58),
+            Map.entry("Melbourne", 58),
+            Map.entry("Spielberg", 71),
+            Map.entry("Baku", 51),
+            Map.entry("Spa-Francorchamps", 44),
+            Map.entry("Sakhir", 57),
+            Map.entry("Interlagos", 71),
+            Map.entry("Montreal", 70),
+            Map.entry("Shanghai", 56),
+            Map.entry("Catalunya", 66),
+            Map.entry("Silverstone", 52),
+            Map.entry("Hungaroring", 70),
+            Map.entry("Monza", 53),
+            Map.entry("Imola", 63),
+            Map.entry("Suzuka", 53),
+            Map.entry("Monte Carlo", 78),
+            Map.entry("Mexico City", 71),
+            Map.entry("Zandvoort", 72),
+            Map.entry("Lusail", 57),
+            Map.entry("Jeddah", 50),
+            Map.entry("Singapore", 62),
+            Map.entry("Austin", 56),
+            Map.entry("Miami", 57),
+            Map.entry("Las Vegas", 50)
+    );
 
     private static final double DEFAULT_LAP_LENGTH_KM = 5.0;
     private static final double DEFAULT_PIT_LANE_LOSS_SECONDS = 22.0;
@@ -101,8 +128,13 @@ public class RaceSyncService {
                 ? Race.RaceStatus.FINISHED
                 : Race.RaceStatus.UPCOMING;
 
+        Integer totalLaps = CIRCUIT_LAP_COUNTS.get(circuit.getName());
+
         if (existing != null) {
             existing.setStatus(status);
+            if (existing.getTotalLaps() == null && totalLaps != null) {
+                existing.setTotalLaps(totalLaps);
+            }
             return raceRepository.save(existing);
         }
 
@@ -111,6 +143,7 @@ public class RaceSyncService {
                 .season(meeting.year())
                 .circuit(circuit)
                 .raceDateTime(raceDateTime)
+                .totalLaps(totalLaps)
                 .externalSessionKey(externalKey)
                 .status(status)
                 .build());
