@@ -15,6 +15,12 @@ export interface WeatherWindow {
     endLap: number;
 }
 
+export interface CircuitSummary {
+    id: number;
+    name: string;
+    country: string;
+}
+
 export interface RaceDriver {
     id: number;
     fullName: string;

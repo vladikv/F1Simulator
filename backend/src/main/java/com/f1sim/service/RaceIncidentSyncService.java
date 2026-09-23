@@ -38,10 +38,7 @@ public class RaceIncidentSyncService {
         double cleanLapSeconds = timeline.medianCleanLapSeconds(referenceLaps);
 
         List<RaceIncident> incidents = new ArrayList<>();
-        incidents.addAll(detectWindows(messages, referenceLaps, cleanLapSeconds, race,
-                RaceIncident.IncidentType.RED_FLAG,
-                m -> "Flag".equals(m.category()) && "Red".equalsIgnoreCase(m.flag()),
-                m -> "Flag".equals(m.category()) && "Green".equalsIgnoreCase(m.flag())));
+        incidents.addAll(detectRedFlagWindows(messages, referenceLaps, race));
 
         incidents.addAll(detectWindows(messages, referenceLaps, cleanLapSeconds, race,
                 RaceIncident.IncidentType.SAFETY_CAR,
@@ -84,6 +81,48 @@ public class RaceIncidentSyncService {
                             .timeLossSeconds(timeLoss)
                             .build());
                 }
+                pendingStartLap = null;
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Red flags fully stop the race (lap counting freezes), unlike safety cars where
+     * laps continue. So instead of comparing lap-by-lap pace, the time lost is just
+     * the raw wall-clock gap between the stoppage and the restart.
+     */
+    private List<RaceIncident> detectRedFlagWindows(
+            List<OpenF1RaceControlDto> messages,
+            List<OpenF1LapDto> referenceLaps,
+            Race race
+    ) {
+        List<RaceIncident> result = new ArrayList<>();
+        Instant pendingStartTime = null;
+        Integer pendingStartLap = null;
+
+        for (OpenF1RaceControlDto message : messages) {
+            boolean isRedFlag = "Flag".equals(message.category()) && "Red".equalsIgnoreCase(message.flag());
+            boolean isRestart = "SessionStatus".equals(message.category())
+                    && message.message() != null
+                    && message.message().toUpperCase().contains("SESSION STARTED");
+
+            if (pendingStartTime == null && isRedFlag) {
+                pendingStartTime = Instant.parse(message.date());
+                pendingStartLap = resolveLapNumber(message, referenceLaps);
+            } else if (pendingStartTime != null && isRestart) {
+                Instant endTime = Instant.parse(message.date());
+                double timeLoss = java.time.Duration.between(pendingStartTime, endTime).getSeconds();
+
+                result.add(RaceIncident.builder()
+                        .race(race)
+                        .type(RaceIncident.IncidentType.RED_FLAG)
+                        .startLap(pendingStartLap != null ? pendingStartLap : 1)
+                        .endLap(pendingStartLap != null ? pendingStartLap : 1)
+                        .timeLossSeconds(timeLoss)
+                        .build());
+
+                pendingStartTime = null;
                 pendingStartLap = null;
             }
         }

@@ -20,9 +20,4 @@ public class User {
 
     @Column(nullable = false)
     private String passwordHash;
-
-    /** Aggregate accuracy score across all simulations, used for the leaderboard. */
-    @Column(name = "rating_score")
-    @Builder.Default
-    private Double ratingScore = 1000.0;
 }

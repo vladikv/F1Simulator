@@ -51,7 +51,6 @@ public class RaceResultSyncJob {
                             simulationRepository.save(simulation);
 
                             User user = simulation.getUser();
-                            user.setRatingScore(user.getRatingScore() + Math.max(0.0, MAX_ACCURACY_POINTS - Math.abs(delta)));
                             userRepository.save(user);
                         });
             }

@@ -8,5 +8,10 @@ import java.util.List;
 
 public interface StrategySimulationRepository extends JpaRepository<StrategySimulation, Long> {
     List<StrategySimulation> findByUserIdOrderByCreatedAtDesc(Long userId);
+    
     List<StrategySimulation> findByRaceAndDeltaVsActualSecondsIsNull(Race race);
+
+    List<StrategySimulation> findByUserIdAndRace_Circuit_IdAndDeltaVsActualSecondsIsNotNull(Long userId, Long circuitId);
+
+    List<StrategySimulation> findByRace_Circuit_IdAndDeltaVsActualSecondsIsNotNull(Long circuitId);
 }

@@ -99,8 +99,6 @@ public class StrategySimulationService {
         return String.format("%d:%02d:%05.2f", hours, minutes, seconds);
     }
 
-    private static final double MAX_ACCURACY_POINTS = 100.0;
-
     private void scoreAgainstActualResult(StrategySimulation simulation, Race race, Driver driver, User user) {
         raceResultService.getActualTotalTimeSeconds(race, driver).ifPresent(actualTime -> {
             double incidentTimeLoss = race.getIncidents().stream()
@@ -110,18 +108,24 @@ public class StrategySimulationService {
             double correctedActualTime = actualTime - incidentTimeLoss;
             double delta = simulation.getPredictedTotalTimeSeconds() - correctedActualTime;
             simulation.setDeltaVsActualSeconds(delta);
-            awardPoints(user, delta);
+
+            notifyIfNewPersonalBest(race, driver, user, delta);
         });
     }
 
-    private void awardPoints(User user, double delta) {
-        double points = Math.max(0.0, MAX_ACCURACY_POINTS - Math.abs(delta));
-        user.setRatingScore(user.getRatingScore() + points);
-        userRepository.save(user);
+    private void notifyIfNewPersonalBest(Race race, Driver driver, User user, double delta) {
+        Long circuitId = race.getCircuit().getId();
+        List<StrategySimulation> priorBests = simulationRepository
+                .findByUserIdAndRace_Circuit_IdAndDeltaVsActualSecondsIsNotNull(user.getId(), circuitId);
 
-        messagingTemplate.convertAndSend(
-                "/topic/leaderboard",
-                new LeaderboardEntryDto(user.getId(), user.getUsername(), user.getRatingScore())
-        );
+        boolean isNewBest = priorBests.stream()
+                .allMatch(s -> Math.abs(delta) <= Math.abs(s.getDeltaVsActualSeconds()));
+
+        if (isNewBest) {
+            messagingTemplate.convertAndSend(
+                    "/topic/leaderboard/" + circuitId,
+                    new LeaderboardEntryDto(user.getId(), user.getUsername(), Math.abs(delta))
+            );
+        }
     }
 }

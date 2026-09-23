@@ -31,9 +31,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // stateless JWT API — no CSRF tokens needed
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml", "/api/races/**", "/api/leaderboard/**").permitAll()
-                        .requestMatchers("/ws/**").permitAll() // handshake is authenticated at STOMP CONNECT level
-                        .anyRequest().authenticated()
+                        .requestMatchers("/api/auth/**", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml", "/api/races/**", "/api/leaderboard/**", "/api/circuits/**").permitAll()                        .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

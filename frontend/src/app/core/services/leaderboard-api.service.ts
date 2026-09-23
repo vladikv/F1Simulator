@@ -10,25 +10,24 @@ export class LeaderboardApiService {
     private stompClient: Client | null = null;
     private readonly leaderboardUpdates = new Subject<LeaderboardEntry>();
 
-    getLeaderboard(): Observable<LeaderboardEntry[]> {
-        return this.http.get<LeaderboardEntry[]>('/api/leaderboard');
+    getLeaderboard(circuitId: number): Observable<LeaderboardEntry[]> {
+        return this.http.get<LeaderboardEntry[]>(`/api/leaderboard?circuitId=${circuitId}`);
     }
 
-    liveUpdates(): Observable<LeaderboardEntry> {
-        if (!this.stompClient) {
-            this.connect();
-        }
+    liveUpdates(circuitId: number): Observable<LeaderboardEntry> {
+        this.stompClient?.deactivate();
+        this.connect(circuitId);
         return this.leaderboardUpdates.asObservable();
     }
 
-    private connect(): void {
+    private connect(circuitId: number): void {
         this.stompClient = new Client({
             brokerURL: 'ws://localhost:8090/ws',
             reconnectDelay: 5000
         });
 
         this.stompClient.onConnect = () => {
-            this.stompClient!.subscribe('/topic/leaderboard', (message) => {
+            this.stompClient!.subscribe(`/topic/leaderboard/${circuitId}`, (message) => {
                 const entry: LeaderboardEntry = JSON.parse(message.body);
                 this.leaderboardUpdates.next(entry);
             });
