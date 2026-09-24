@@ -6,7 +6,7 @@
 
     <select class="circuit-select"
             [ngModel]="selectedCircuitId()"
-            (ngModelChange)="selectedCircuitId.set(+$event)">
+            (ngModelChange)="onCircuitChange(+$event)">
         @for (c of circuits(); track c.id) {
         <option [value]="c.id">{{ c.name }} ({{ c.country }})</option>
         }
