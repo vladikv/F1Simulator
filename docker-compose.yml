@@ -1,25 +1,36 @@
 services:
-  f1sim-db:
+  db:
     image: postgres:15
     container_name: f1sim-db
-    restart: unless-stopped
     environment:
+      POSTGRES_DB: f1sim
       POSTGRES_USER: f1sim
       POSTGRES_PASSWORD: f1sim
-      POSTGRES_DB: f1sim
     ports:
       - "5435:5432"
     volumes:
       - f1sim-db-data:/var/lib/postgresql/data
 
-  f1sim-redis:
+  redis:
     image: redis
     container_name: f1sim-redis
-    restart: unless-stopped
     ports:
       - "6381:6379"
 
+  backend:
+    build: ./backend
+    container_name: f1sim-backend
+    depends_on:
+      - db
+      - redis
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/f1sim
+      DB_USERNAME: f1sim
+      DB_PASSWORD: f1sim
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "8090:8090"
+
 volumes:
   f1sim-db-data:
-    external: true
-    name: afcc690a74489c9d4b2f6e8830ab6c6f09b107a4699d3c9a2af6888fff7dc8aa
