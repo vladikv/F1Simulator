@@ -90,7 +90,7 @@ export class StrategyBuilderComponent {
 
     this.stints.update(list => [
       ...list,
-      { compound: 'HARD', startLap: lastEndLap + 1, endLap: Math.min(lastEndLap + 15, this.totalLaps()) }
+      { compound: 'HARD', startLap: lastEndLap + 1, endLap: this.totalLaps() }
     ]);
   }
 
