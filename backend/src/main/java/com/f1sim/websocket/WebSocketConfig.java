@@ -1,4 +1,4 @@
-package com.f1sim.config;
+package com.f1sim.websocket;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
