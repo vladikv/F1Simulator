@@ -1,127 +1,194 @@
+<div align="center">
+
 # F1 Strategy Simulator
 
-Explore Formula 1 race strategy by building tyre stints, simulating their predicted race time, and comparing predictions with real results. The project pairs an Angular interface with a Spring Boot API and uses race data from [OpenF1](https://openf1.org/).
+**Every stint is a bet on degradation.**
 
-## Contents
+Build a tyre strategy, simulate its predicted race time, and see how it compares with a real result.
 
-- [Quick start](#quick-start)
-- [Using the simulator](#using-the-simulator)
-- [Configuration](#configuration)
-- [Architecture](#architecture)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [License and project status](#license-and-project-status)
+[![Java 21](https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/21/)
+[![Spring Boot 3](https://img.shields.io/badge/Spring_Boot-3-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Angular 18](https://img.shields.io/badge/Angular-18-DD0031?logo=angular&logoColor=white)](https://angular.dev/)
+[![PostgreSQL 15](https://img.shields.io/badge/PostgreSQL-15-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+
+</div>
+
+## Navigate
+
+| [🏎️ Overview](#overview) | [🚦 Quick start](#quick-start) | [🎮 Use the simulator](#use-the-simulator) | [⚙️ Configuration](#configuration) | [🧭 Architecture](#architecture) | [🛠️ Troubleshooting](#troubleshooting) | [🤝 Contributing](#contributing) |
+| --- | --- | --- | --- | --- | --- | --- |
+
+## Overview
+
+An F1 strategy sandbox powered by real race, driver, weather, and result data from [OpenF1](https://openf1.org/). Pick a race, plan tyre stints, and compare a simulation with a driver's actual race time when results are available.
+
+| Feature | What you can do |
+| --- | --- |
+| **Strategy builder** | Choose Soft, Medium, Hard, Intermediate, or Wet tyres; edit stint lap ranges; simulate a full race distance. |
+| **Race explorer** | Browse synced races and drivers alongside locally bundled circuit outlines. |
+| **Race context** | View synced weather windows and compare predictions against available race results. |
+| **Leaderboard** | Compare each user's closest scored prediction by circuit; receive live updates over WebSocket. |
+| **Accounts** | Register and sign in to save and score simulations. |
+
+> [!NOTE]
+> The strategy engine is an estimate, not a race-pace predictor: tyre degradation is linear, and safety cars, red flags, and other race incidents are not modeled.
 
 ## Quick start
 
-**Requirements:** Docker with Compose, Node.js, and npm.
+### Prerequisites
 
-1. Start PostgreSQL, Redis, and the API from the repository root:
+- Docker Engine with Docker Compose
+- Node.js and npm
 
-   ```sh
-   docker compose up --build -d
-   ```
+### Start the app
 
-   The API runs at `http://localhost:8090`. Database migrations are applied at startup.
-
-2. In a second terminal, install and start the Angular app:
-
-   ```sh
-   cd frontend
-   npm ci
-   npm start
-   ```
-
-3. Open [http://localhost:4210](http://localhost:4210), then register or sign in to build a strategy.
-
-The race list is populated from the backend database. For a fresh database, sync a season from OpenF1 after signing in. The sync endpoint is authenticated; in the browser developer console, copy the value of `localStorage.getItem('f1sim_token')`, then run the following from PowerShell or a terminal, replacing `<JWT>` with that value:
+From the repository root, start PostgreSQL, Redis, and the API:
 
 ```sh
-curl.exe -X POST "http://localhost:8090/api/admin/sync/season/2024" -H "Authorization: Bearer <JWT>"
+docker compose up --build -d
 ```
 
-Change `2024` to the season you want to import. OpenF1 availability and request limits apply.
+In a second terminal, start the Angular development server:
 
-## Using the simulator
+```sh
+cd frontend
+npm ci
+npm start
+```
 
-1. Choose a circuit on the home screen and select a listed race driver.
-2. Register or sign in, then open **Build a strategy**.
-3. Add or remove stints, choose a tyre compound, and set the lap range for each stint. The plan must cover the race distance.
-4. Run the simulation to see its predicted total time. For a finished race with available results, the app also shows the difference from the actual result.
-5. Visit **Leaderboard** to compare the most accurate scored prediction per user and circuit. A profile page is available for signed-in users.
-
-The available compounds are Soft, Medium, Hard, Intermediate, and Wet. Race weather windows are shown in the strategy builder when data is available. Comparisons are estimates: the model does not account for safety cars, red flags, or other race incidents.
+Open [http://localhost:4210](http://localhost:4210), register or sign in, then choose a circuit and driver. The API listens on `http://localhost:8090`; its [Swagger UI](http://localhost:8090/swagger-ui.html) lists the available endpoints.
 
 <details>
-<summary>More about the simulation model</summary>
+<summary>First run: import a race season</summary>
 
-The backend calculates each stint lap from a base lap time, compound pace delta, linearly increasing tyre degradation, and a wet/dry compound mismatch penalty. Each pit stop adds the circuit's pit-lane time loss and the driver's team's average pit-stop time. The simplified model is implemented in [`StrategyEngineService`](backend/src/main/java/com/f1sim/service/StrategyEngineService.java).
+A new database has no races until you sync data from OpenF1. Sign in in the app, then copy your token from the browser developer console:
+
+```js
+localStorage.getItem('f1sim_token')
+```
+
+Use that token in this authenticated request, replacing `<JWT>` with the copied value:
+
+```sh
+curl -X POST "http://localhost:8090/api/admin/sync/season/2024" \
+  -H "Authorization: Bearer <JWT>"
+```
+
+Change `2024` to the season to import. OpenF1 availability and request limits apply. Race synchronization is a manual request; the backend's scheduled job scores simulations when results for finished races become available.
+
+</details>
+
+## Use the simulator
+
+1. Choose a circuit and select an available race and driver.
+2. Sign in and select **Build a strategy**.
+3. Add or remove stints, select a compound, and set the lap range. Cover the full race distance.
+4. Select **Run simulation** to see predicted total time and, for a finished race with results, the delta from actual time.
+5. Visit **Leaderboard** to view the closest scored prediction per user and circuit.
+
+<details>
+<summary>What the model includes</summary>
+
+Each lap combines a base time, tyre-compound pace delta, linearly increasing stint degradation, and a penalty when tyre choice mismatches wet or dry conditions. Each pit stop adds circuit pit-lane loss and the team's average stop time. The engine is implemented in [`StrategyEngineService`](backend/src/main/java/com/f1sim/service/StrategyEngineService.java).
 
 </details>
 
 ## Configuration
 
-`docker-compose.yml` supplies local PostgreSQL and Redis settings to the backend. The Spring configuration also supports these environment variables:
+Compose provides local PostgreSQL and Redis services. The backend configuration in [`application.yml`](backend/src/main/resources/application.yml) supports:
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
-| `SPRING_DATASOURCE_URL` | PostgreSQL JDBC URL | `jdbc:postgresql://localhost:5435/f1sim` |
+| `SPRING_DATASOURCE_URL` | PostgreSQL connection URL | `jdbc:postgresql://localhost:5435/f1sim` |
 | `DB_USERNAME` / `DB_PASSWORD` | Database credentials | `f1sim` / `f1sim` |
 | `REDIS_HOST` / `REDIS_PORT` | Redis connection | `localhost` / `6381` |
-| `JWT_SECRET` | Signing key for authentication tokens | Development-only placeholder |
+| `JWT_SECRET` | JWT signing secret | Development placeholder |
 
-Set a strong `JWT_SECRET` and non-development database credentials before exposing the service beyond a local environment. The OpenF1 base URL is configured in [`application.yml`](backend/src/main/resources/application.yml).
+Set a strong `JWT_SECRET` and non-development database credentials before exposing the service beyond a local environment. In Compose, the backend connects to the database and Redis using their service names and internal ports.
 
 <details>
-<summary>Ports and service commands</summary>
+<summary>Local service URLs and ports</summary>
 
-| Service | Local address | Compose service |
+| Service | Address | Notes |
 | --- | --- | --- |
-| Frontend | `http://localhost:4210` | Run separately with `npm start` |
-| Backend API | `http://localhost:8090` | `backend` |
-| PostgreSQL | `localhost:5435` | `db` |
-| Redis | `localhost:6381` | `redis` |
+| Angular frontend | [localhost:4210](http://localhost:4210) | API requests under `/api` are proxied to the backend. |
+| Spring Boot API | [localhost:8090](http://localhost:8090) | Swagger UI: [`/swagger-ui.html`](http://localhost:8090/swagger-ui.html). |
+| PostgreSQL | `localhost:5435` | Compose service `db`; data persists in `f1sim-db-data`. |
+| Redis | `localhost:6381` | Compose service `redis`. |
 
-The Angular development server proxies `/api` requests to the backend. To stop the Compose services, run `docker compose down` from the repository root. The named `f1sim-db-data` volume keeps database data when containers stop.
+Stop the containers with `docker compose down` from the repository root.
 
 </details>
 
 ## Architecture
 
-- **Frontend:** Angular 18 standalone components, lazy-loaded routes, and API services live under [`frontend/src/app`](frontend/src/app/). Circuit outlines and the circuit-to-race mapping are local frontend data.
-- **Backend:** Spring Boot 3 REST controllers and services live under [`backend/src/main/java/com/f1sim`](backend/src/main/java/com/f1sim/). Authentication uses JWT; race browsing is public while strategy simulation requires sign-in.
-- **Persistence and ingestion:** PostgreSQL entities and repositories are managed with Flyway migrations in [`backend/src/main/resources/db/migration`](backend/src/main/resources/db/migration/). [`RaceSyncService`](backend/src/main/java/com/f1sim/service/RaceSyncService.java) imports meetings, sessions, drivers, incidents, and weather from OpenF1.
-- **API reference:** When the backend is running, open [Swagger UI](http://localhost:8090/swagger-ui.html).
+```mermaid
+flowchart LR
+    Browser["Angular app<br/>localhost:4210"] -->|"/api requests"| API["Spring Boot API<br/>localhost:8090"]
+    API --> DB[("PostgreSQL<br/>Flyway migrations")]
+    API -->|race, driver, weather and result data| OpenF1["OpenF1 API"]
+    API -. configured connection .-> Redis[("Redis")]
+    API -->|"/ws · leaderboard updates"| Browser
+```
 
-The backend build and Java version are defined in [`backend/pom.xml`](backend/pom.xml); frontend scripts are in [`frontend/package.json`](frontend/package.json). Local service definitions are in [`docker-compose.yml`](docker-compose.yml).
+| Area | Location | Responsibility |
+| --- | --- | --- |
+| Frontend | [`frontend/src/app`](frontend/src/app/) | Lazy-loaded Angular screens, API clients, auth, and local circuit-track data. |
+| REST API | [`backend/src/main/java/com/f1sim/controller`](backend/src/main/java/com/f1sim/controller/) | Race, circuit, auth, strategy, leaderboard, and manual sync endpoints. |
+| Services | [`backend/src/main/java/com/f1sim/service`](backend/src/main/java/com/f1sim/service/) | OpenF1 ingestion, strategy simulation, race-result scoring, and weather/incident sync. |
+| Database | [`backend/src/main/resources/db/migration`](backend/src/main/resources/db/migration/) | PostgreSQL schema migrations managed by Flyway. |
+| Local services | [`docker-compose.yml`](docker-compose.yml) | PostgreSQL, Redis, and the containerized backend. |
+
+<details>
+<summary>API at a glance</summary>
+
+| Method | Endpoint | Access |
+| --- | --- | --- |
+| `POST` | `/api/auth/register`, `/api/auth/login` | Public |
+| `GET` | `/api/races`, `/api/races/{id}`, `/api/races/{id}/drivers`, `/api/races/{id}/weather` | Public |
+| `GET` | `/api/circuits`, `/api/leaderboard?circuitId={id}` | Public |
+| `POST` | `/api/strategy/simulate` | Sign-in required |
+| `POST` | `/api/admin/sync/season/{year}` | Sign-in required |
+| WebSocket | `/ws` → `/topic/leaderboard/{circuitId}` | Live leaderboard updates |
+
+</details>
+
+### Project structure
+
+```text
+.
+├── backend/      Spring Boot API, Flyway migrations, Dockerfile
+├── frontend/     Angular app, circuit data, UI components
+└── docker-compose.yml
+```
 
 ## Troubleshooting
 
 <details>
 <summary>The race list is empty</summary>
 
-A new database has no synced races. Sign in, then use the authenticated OpenF1 season-sync request in [Quick start](#quick-start). Confirm the selected season has data available from OpenF1.
+Sync a season using the authenticated request under [Quick start](#quick-start). Confirm OpenF1 has data for that season and check the backend logs with `docker compose logs backend`.
 
 </details>
 
 <details>
 <summary>The frontend cannot reach the API</summary>
 
-Check that the Compose backend is healthy and listening on port `8090`, and that the frontend is running on `4210` (the configured API proxy target). Inspect backend output with `docker compose logs backend`.
+Confirm the frontend runs on port `4210` and the Compose backend on `8090`. The development server's `/api` proxy target is configured in [`proxy.conf.json`](frontend/proxy.conf.json). Inspect service startup with `docker compose logs backend db redis`.
 
 </details>
 
 <details>
 <summary>Database connection or schema errors</summary>
 
-Start Compose from the repository root and check `docker compose logs db backend`. The backend applies Flyway migrations during startup; confirm PostgreSQL is ready and the configured database credentials match.
+Check `docker compose logs db backend` and ensure PostgreSQL is ready. Flyway applies migrations on backend startup; avoid manually changing the schema managed by those migrations.
 
 </details>
 
 ## Contributing
 
-Bug reports and focused pull requests are welcome. For significant changes, open an issue first to discuss the proposed behavior. Include the steps or tests used to verify a change; keep frontend and backend changes consistent where they share API behavior.
+Bug reports and focused pull requests are welcome. For significant behavior changes, open an issue first. Include reproduction steps for bug fixes and note how you verified your change.
 
-## License and project status
+## Project status and license
 
-No `LICENSE` file is currently present, so the repository does not specify usage or distribution permissions. The project currently provides race browsing, account registration and login, strategy simulation, and circuit leaderboards; a hosted deployment is not documented.
+The repository includes race browsing, account registration and login, strategy simulation, and circuit leaderboards. No hosted deployment or `LICENSE` file is currently documented; no usage or distribution permissions are specified.
