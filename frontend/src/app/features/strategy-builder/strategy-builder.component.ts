@@ -86,12 +86,30 @@ export class StrategyBuilderComponent {
 
   addStint(): void {
     const current = this.stints();
-    const lastEndLap = current.length > 0 ? current[current.length - 1].endLap : 0;
 
-    this.stints.update(list => [
-      ...list,
-      { compound: 'HARD', startLap: lastEndLap + 1, endLap: this.totalLaps() }
-    ]);
+    if (current.length === 0) {
+      this.stints.set([{ compound: 'MEDIUM', startLap: 1, endLap: this.totalLaps() }]);
+      return;
+    }
+
+    const lastIndex = current.length - 1;
+    const last = current[lastIndex];
+
+    if (last.endLap === this.totalLaps()) {
+      // Last stint already reaches the end — split its range in half,
+      // the new stint takes the back half.
+      const midLap = Math.floor((last.startLap + last.endLap) / 2);
+      const shortenedLast = { ...last, endLap: midLap };
+      const newStint = { compound: 'HARD' as TyreCompound, startLap: midLap + 1, endLap: this.totalLaps() };
+
+      this.stints.set([...current.slice(0, lastIndex), shortenedLast, newStint]);
+    } else {
+      // Edge case: last stint doesn't reach the end yet (e.g. after manual editing) — just append.
+      this.stints.update(list => [
+        ...list,
+        { compound: 'HARD', startLap: last.endLap + 1, endLap: this.totalLaps() }
+      ]);
+    }
   }
 
   removeStint(index: number): void {
