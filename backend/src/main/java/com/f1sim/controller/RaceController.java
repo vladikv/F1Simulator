@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Comparator;
 
 @RestController
 @RequestMapping("/api/races")
@@ -25,10 +26,20 @@ public class RaceController {
     private final RaceWeatherWindowRepository raceWeatherWindowRepository;
 
     @GetMapping
-    public List<RaceSummaryDto> listRaces() {
+    public List<RaceSummaryDto> listRaces(@RequestParam(required = false) Integer season) {
         return raceRepository.findAll().stream()
+                .filter(r -> season == null || r.getSeason().equals(season))
                 .map(this::toSummary)
                 .sorted((a, b) -> b.raceDateTime().compareTo(a.raceDateTime()))
+                .toList();
+    }
+
+    @GetMapping("/seasons")
+    public List<Integer> listSeasons() {
+        return raceRepository.findAll().stream()
+                .map(Race::getSeason)
+                .distinct()
+                .sorted(Comparator.reverseOrder())
                 .toList();
     }
 

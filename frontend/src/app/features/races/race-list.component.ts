@@ -22,6 +22,8 @@ const PIT_STOP_ALLOWANCE_SECONDS = 2 * 23;
 })
 export class RaceListComponent {
   private readonly raceApi = inject(RaceApiService);
+  readonly seasons = signal<number[]>([]);
+  readonly selectedSeason = signal<number | null>(null);
 
   readonly availableTracks = CIRCUIT_TRACKS.filter(
       t => t.id in CIRCUIT_TO_OPENF1_NAME
@@ -34,7 +36,16 @@ export class RaceListComponent {
   readonly selectedDriverId = signal<number | null>(null);
 
   constructor() {
-    this.raceApi.getRaces().subscribe(list => this.races.set(list));
+    this.raceApi.getSeasons().subscribe(seasons => {
+      this.seasons.set(seasons);
+      this.selectedSeason.set(seasons[0] ?? null);
+    });
+
+    effect(() => {
+      const season = this.selectedSeason();
+      if (season === null) return;
+      this.raceApi.getRaces(season).subscribe(list => this.races.set(list));
+    }, { allowSignalWrites: true });
 
     effect(() => {
       const race = this.matchedRace();
@@ -57,12 +68,6 @@ export class RaceListComponent {
       this.availableTracks.find(t => t.id === this.selectedTrackId())!
   );
 
-  // Matched by country, not circuit name — OpenF1's circuit_short_name
-  // ("Monte Carlo") and the local GeoJSON dataset's displayName ("Circuit
-  // de Monaco") diverge in wording across most of the 40 tracks. Country
-  // is a single clean field on both sides and almost always unambiguous
-  // (one Grand Prix per country per season, with the exception of a
-  // handful of double-header seasons like Emilia Romagna/Italy).
   readonly matchedRace = computed<RaceSummary | null>(() => {
     const openF1Name = CIRCUIT_TO_OPENF1_NAME[this.selectedTrackId()];
     if (!openF1Name) return null;

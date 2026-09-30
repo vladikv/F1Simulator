@@ -6,6 +6,8 @@ import * as LeaderboardActions from './leaderboard.actions';
 export interface LeaderboardState {
     circuits: CircuitSummary[];
     selectedCircuitId: number | null;
+    seasons: number[];
+    selectedSeason: number | null;
     entries: LeaderboardEntry[];
     isLoading: boolean;
 }
@@ -13,6 +15,8 @@ export interface LeaderboardState {
 export const initialState: LeaderboardState = {
     circuits: [],
     selectedCircuitId: null,
+    seasons: [],
+    selectedSeason: null,
     entries: [],
     isLoading: true
 };
@@ -48,5 +52,17 @@ export const leaderboardReducer = createReducer(
             ...state,
             entries: merged.sort((a, b) => a.bestAbsDeltaSeconds - b.bestAbsDeltaSeconds)
         };
-    })
+    }),
+
+    on(LeaderboardActions.selectSeason, (state, { season }) => ({
+        ...state,
+        selectedSeason: season,
+        isLoading: true
+    })),
+
+    on(LeaderboardActions.loadSeasonsSuccess, (state, { seasons }) => ({
+        ...state,
+        seasons,
+        selectedSeason: seasons[0] ?? null
+    })),
 );

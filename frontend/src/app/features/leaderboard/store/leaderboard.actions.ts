@@ -22,3 +22,13 @@ export const leaderboardEntryUpdated = createAction(
     '[Leaderboard] Entry Updated (WebSocket)',
     props<{ entry: LeaderboardEntry }>()
 );
+
+export const selectSeason = createAction(
+    '[Leaderboard] Select Season',
+    props<{ season: number }>()
+);
+
+export const loadSeasonsSuccess = createAction(
+    '[Leaderboard] Load Seasons Success',
+    props<{ seasons: number[] }>()
+);

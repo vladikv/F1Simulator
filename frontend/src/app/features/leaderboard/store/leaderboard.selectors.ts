@@ -3,6 +3,9 @@ import { LeaderboardState } from './leaderboard.reducer';
 
 export const selectLeaderboardState = createFeatureSelector<LeaderboardState>('leaderboard');
 
+export const selectSeasons = createSelector(selectLeaderboardState, state => state.seasons);
+export const selectSelectedSeason = createSelector(selectLeaderboardState, state => state.selectedSeason);
+
 export const selectCircuits = createSelector(
     selectLeaderboardState,
     state => state.circuits

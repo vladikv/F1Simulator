@@ -4,13 +4,23 @@
         <h2 class="leaderboard-title">Strategist <span class="accent">rankings</span>.</h2>
     </header>
 
-    <select class="circuit-select"
-            [ngModel]="selectedCircuitId()"
-            (ngModelChange)="onCircuitChange(+$event)">
-        @for (c of circuits(); track c.id) {
-        <option [value]="c.id">{{ c.name }} ({{ c.country }})</option>
-        }
-    </select>
+    <div class="filters-row">
+        <select class="circuit-select"
+                [ngModel]="selectedCircuitId()"
+                (ngModelChange)="onCircuitChange(+$event)">
+            @for (c of circuits(); track c.id) {
+            <option [value]="c.id">{{ c.name }} ({{ c.country }})</option>
+            }
+        </select>
+
+        <select class="season-select"
+                [ngModel]="selectedSeason()"
+                (ngModelChange)="onSeasonChange(+$event)">
+            @for (s of seasons(); track s) {
+            <option [value]="s">{{ s }}</option>
+            }
+        </select>
+    </div>
 
     @if (isLoading()) {
     <p class="leaderboard-loading">Loading standings…</p>

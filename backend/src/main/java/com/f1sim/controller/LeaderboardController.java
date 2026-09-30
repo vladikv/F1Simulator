@@ -24,11 +24,15 @@ public class LeaderboardController {
     private final StrategySimulationRepository simulationRepository;
 
     @GetMapping
-    public List<LeaderboardEntryDto> getLeaderboard(@RequestParam Long circuitId) {
+    public List<LeaderboardEntryDto> getLeaderboard(
+            @RequestParam Long circuitId,
+            @RequestParam(required = false) Integer season
+    ) {
         List<StrategySimulation> simulations =
-                simulationRepository.findByRace_Circuit_IdAndDeltaVsActualSecondsIsNotNull(circuitId);
+                simulationRepository.findByRace_Circuit_IdAndDeltaVsActualSecondsIsNotNull(circuitId).stream()
+                        .filter(s -> season == null || s.getRace().getSeason().equals(season))
+                        .toList();
 
-        // Group by user, keep only each user's single most accurate simulation on this circuit.
         Map<Long, StrategySimulation> bestPerUser = simulations.stream()
                 .collect(Collectors.toMap(
                         s -> s.getUser().getId(),

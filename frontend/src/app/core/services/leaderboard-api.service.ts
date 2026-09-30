@@ -10,8 +10,11 @@ export class LeaderboardApiService {
     private stompClient: Client | null = null;
     private readonly leaderboardUpdates = new Subject<LeaderboardEntry>();
 
-    getLeaderboard(circuitId: number): Observable<LeaderboardEntry[]> {
-        return this.http.get<LeaderboardEntry[]>(`/api/leaderboard?circuitId=${circuitId}`);
+    getLeaderboard(circuitId: number, season?: number): Observable<LeaderboardEntry[]> {
+        const url = season
+            ? `/api/leaderboard?circuitId=${circuitId}&season=${season}`
+            : `/api/leaderboard?circuitId=${circuitId}`;
+        return this.http.get<LeaderboardEntry[]>(url);
     }
 
     liveUpdates(circuitId: number): Observable<LeaderboardEntry> {

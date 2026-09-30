@@ -8,8 +8,13 @@ export class RaceApiService {
     private readonly http = inject(HttpClient);
     private readonly baseUrl = '/api/races';
 
-    getRaces(): Observable<RaceSummary[]> {
-        return this.http.get<RaceSummary[]>(this.baseUrl);
+    getRaces(season?: number): Observable<RaceSummary[]> {
+        const url = season ? `${this.baseUrl}?season=${season}` : this.baseUrl;
+        return this.http.get<RaceSummary[]>(url);
+    }
+
+    getSeasons(): Observable<number[]> {
+        return this.http.get<number[]>(`${this.baseUrl}/seasons`);
     }
 
     getRace(id: number): Observable<RaceSummary> {

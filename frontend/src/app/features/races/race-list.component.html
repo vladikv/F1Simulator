@@ -44,6 +44,14 @@
                 }
             </select>
 
+            <select class="season-select"
+                    [ngModel]="selectedSeason()"
+                    (ngModelChange)="selectedSeason.set(+$event)">
+                @for (s of seasons(); track s) {
+                <option [value]="s">{{ s }}</option>
+                }
+            </select>
+
             <div class="stat-badge">
                 <div class="stat-item">
                     <span class="stat-value">{{ estimatedLaps() ?? '—' }}</span>
