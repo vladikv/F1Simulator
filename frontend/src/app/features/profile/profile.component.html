@@ -1,5 +1,53 @@
 <section class="profile">
     <span class="profile-eyebrow">PIT WALL // DRIVER PROFILE</span>
     <h1 class="profile-title">{{ auth.username() }}</h1>
-    <p class="profile-placeholder">More stats and history coming soon.</p>
+
+    @if (isLoading()) {
+    <p class="profile-loading">Loading history…</p>
+    } @else {
+
+    <div class="profile-stats">
+        <div class="stat-card">
+            <span class="stat-value">{{ history().length }}</span>
+            <span class="stat-label">STRATEGIES BUILT</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-value">{{ scoredCount() }}</span>
+            <span class="stat-label">SCORED</span>
+        </div>
+        @if (averageAbsDelta(); as avg) {
+        <div class="stat-card">
+            <span class="stat-value">±{{ avg | number:'1.1-1' }}s</span>
+            <span class="stat-label">AVG ACCURACY</span>
+        </div>
+        }
+    </div>
+
+    @if (history().length === 0) {
+    <p class="profile-empty">No strategies built yet — go build one!</p>
+    } @else {
+    <div class="history-list">
+        @for (sim of history(); track sim.id) {
+        <div class="history-row">
+            <div class="history-main">
+                <span class="history-race">{{ sim.grandPrixName }} {{ sim.season }}</span>
+                <span class="history-driver">{{ sim.driverCode }}</span>
+            </div>
+
+            <div class="history-stints">
+                @for (stint of sim.stints; track $index) {
+                <span class="stint-chip" [style.--chip-color]="'var(--tyre-' + stint.compound.toLowerCase() + ')'">
+                    {{ stint.compound }} {{ stint.startLap }}–{{ stint.endLap }}
+                </span>
+                }
+            </div>
+
+            <span class="history-delta" [class.pending]="deltaClass(sim) === 'pending'">
+                {{ deltaLabel(sim) }}
+            </span>
+        </div>
+        }
+    </div>
+    }
+    }
 </section>
